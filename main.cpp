@@ -283,6 +283,8 @@ class Board {
         }
     }
 
+    
+
     vector<uint16_t> moveGen() {
         vector<uint16_t> moves;
 
@@ -833,10 +835,10 @@ class Board {
             }
         }
 
-        // rook moves
+        // rook + queen moves
         if (whiteToMove) {
             // right
-            moveMask = R & ~FileH;
+            moveMask = (R | Q) & ~FileH;
             i = 0;
             while (moveMask) {
                 moveMask <<= 1;
@@ -856,7 +858,7 @@ class Board {
                 moveMask &= ~FileH;
             }
             // left
-            moveMask = R & ~FileA;
+            moveMask = (R | Q) & ~FileA;
             i = 0;
             while (moveMask) {
                 moveMask >>= 1;
@@ -876,7 +878,7 @@ class Board {
                 moveMask &= ~FileA;
             }
             // up
-            moveMask = R & ~Rank8;
+            moveMask = (R | Q) & ~Rank8;
             i = 0;
             while (moveMask) {
                 moveMask <<= 8;
@@ -896,7 +898,7 @@ class Board {
                 moveMask &= ~Rank8;
             }
             // down
-            moveMask = R & ~Rank1;
+            moveMask = (R | Q) & ~Rank1;
             i = 0;
             while (moveMask) {
                 moveMask >>= 8;
@@ -918,7 +920,7 @@ class Board {
         }
         else {
             // right
-            moveMask = r & ~FileH;
+            moveMask = (r | q) & ~FileH;
             i = 0;
             while (moveMask) {
                 moveMask <<= 1;
@@ -938,7 +940,7 @@ class Board {
                 moveMask &= ~FileH;
             }
             // left
-            moveMask = r & ~FileA;
+            moveMask = (r | q) & ~FileA;
             i = 0;
             while (moveMask) {
                 moveMask >>= 1;
@@ -958,7 +960,7 @@ class Board {
                 moveMask &= ~FileA;
             }
             // up
-            moveMask = r & ~Rank8;
+            moveMask = (r | q) & ~Rank8;
             i = 0;
             while (moveMask) {
                 moveMask <<= 8;
@@ -978,7 +980,7 @@ class Board {
                 moveMask &= ~Rank8;
             }
             // down
-            moveMask = r & ~Rank1;
+            moveMask = (r | q) & ~Rank1;
             i = 0;
             while (moveMask) {
                 moveMask >>= 8;
@@ -999,10 +1001,10 @@ class Board {
             }
         }
 
-        // bishop moves
+        // bishop + queen moves
         if (whiteToMove) {
             // up-right
-            moveMask = B & ~(FileH | Rank8);
+            moveMask = (B | Q) & ~(FileH | Rank8);
             i = 0;
             while (moveMask) {
                 moveMask <<= 9;
@@ -1022,7 +1024,7 @@ class Board {
                 moveMask &= ~(FileH | Rank8);
             }
             // up-left
-            moveMask = B & ~(FileA | Rank8);
+            moveMask = (B | Q) & ~(FileA | Rank8);
             i = 0;
             while (moveMask) {
                 moveMask <<= 7;
@@ -1042,7 +1044,7 @@ class Board {
                 moveMask &= ~(FileA | Rank8);
             }
             // down-right
-            moveMask = B & ~(FileH | Rank1);
+            moveMask = (B | Q) & ~(FileH | Rank1);
             i = 0;
             while (moveMask) {
                 moveMask >>= 7;
@@ -1062,7 +1064,7 @@ class Board {
                 moveMask &= ~(FileH | Rank1);
             }
             // down-left
-            moveMask = B & ~(FileA | Rank1);
+            moveMask = (B | Q) & ~(FileA | Rank1);
             i = 0;
             while (moveMask) {
                 moveMask >>= 9;
@@ -1084,7 +1086,7 @@ class Board {
         }
         else {
             // up-right
-            moveMask = b & ~(FileH | Rank8);
+            moveMask = (b | q) & ~(FileH | Rank8);
             i = 0;
             while (moveMask) {
                 moveMask <<= 9;
@@ -1104,7 +1106,7 @@ class Board {
                 moveMask &= ~(FileH | Rank8);
             }
             // up-left
-            moveMask = b & ~(FileA | Rank8);
+            moveMask = (b | q) & ~(FileA | Rank8);
             i = 0;
             while (moveMask) {
                 moveMask <<= 7;
@@ -1124,7 +1126,7 @@ class Board {
                 moveMask &= ~(FileA | Rank8);
             }
             // down-right
-            moveMask = b & ~(FileH | Rank1);
+            moveMask = (b | q) & ~(FileH | Rank1);
             i = 0;
             while (moveMask) {
                 moveMask >>= 7;
@@ -1144,333 +1146,7 @@ class Board {
                 moveMask &= ~(FileH | Rank1);
             }
             // down-left
-            moveMask = b & ~(FileA | Rank1);
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 9;
-                i += 9;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~(FileA | Rank1);
-            }
-        }
-
-        // queen moves
-        if (whiteToMove) {
-            // right
-            moveMask = Q & ~FileH;
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 1;
-                i++;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~FileH;
-            }
-            // left
-            moveMask = Q & ~FileA;
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 1;
-                i++;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~FileA;
-            }
-            // up
-            moveMask = Q & ~Rank8;
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 8;
-                i += 8;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~Rank8;
-            }
-            // down
-            moveMask = Q & ~Rank1;
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 8;
-                i += 8;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~Rank1;
-            }
-            // up-right
-            moveMask = Q & ~(FileH | Rank8);
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 9;
-                i += 9;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~(FileH | Rank8);
-            }
-            // up-left
-            moveMask = Q & ~(FileA | Rank8);
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 7;
-                i += 7;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~(FileA | Rank8);
-            }
-            // down-right
-            moveMask = Q & ~(FileH | Rank1);
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 7;
-                i += 7;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~(FileH | Rank1);
-            }
-            // down-left
-            moveMask = Q & ~(FileA | Rank1);
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 9;
-                i += 9;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
-                moveMask &= ~(FileA | Rank1);
-            }
-        }
-        else {
-            // right
-            moveMask = q & ~FileH;
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 1;
-                i++;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~FileH;
-            }
-            // left
-            moveMask = q & ~FileA;
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 1;
-                i++;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~FileA;
-            }
-            // up
-            moveMask = q & ~Rank8;
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 8;
-                i += 8;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~Rank8;
-            }
-            // down
-            moveMask = q & ~Rank1;
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 8;
-                i += 8;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~Rank1;
-            }
-            // up-right
-            moveMask = q & ~(FileH | Rank8);
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 9;
-                i += 9;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~(FileH | Rank8);
-            }
-            // up-left
-            moveMask = q & ~(FileA | Rank8);
-            i = 0;
-            while (moveMask) {
-                moveMask <<= 7;
-                i += 7;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~(FileA | Rank8);
-            }
-            // down-right
-            moveMask = q & ~(FileH | Rank1);
-            i = 0;
-            while (moveMask) {
-                moveMask >>= 7;
-                i += 7;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
-                moveMask &= ~(FileH | Rank1);
-            }
-            // down-left
-            moveMask = q & ~(FileA | Rank1);
+            moveMask = (b | q) & ~(FileA | Rank1);
             i = 0;
             while (moveMask) {
                 moveMask >>= 9;
