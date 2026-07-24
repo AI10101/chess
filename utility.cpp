@@ -31,3 +31,9 @@ void printBitboard(const bitboard& bitboard) {
         std::cout << "\n";
     }
 }
+
+int popLSB(bitboard& bb) {
+    int sq = __builtin_ctzll(bb);
+    bb &= bb - 1;
+    return sq;
+}

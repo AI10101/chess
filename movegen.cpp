@@ -1,12 +1,7 @@
 #include "movegen.h"
 #include "board.h"
+#include "utility.h"
 
-
-int popLSB(bitboard& bb) {
-    int sq = __builtin_ctzll(bb);
-    bb &= bb - 1;
-    return sq;
-}
 
 void addMoves(std::vector<move>& moves, bitboard moveMask, int offset, uint16_t flags = 0b0000) {
     while (moveMask) {

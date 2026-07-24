@@ -1,4 +1,6 @@
 #include "board.h"
+#include "constants.h"
+#include "utility.h"
 
 #include <sstream>
 
@@ -215,6 +217,7 @@ void makeMove(const uint16_t& move, Board& board) {
 bitboard getDangerSquares(Board& board) {
     uint64_t danger = 0ULL;
     uint64_t moveMask = 0ULL;
+    int sq;
 
     if (board.whiteToMove) {
         // pawns
@@ -224,40 +227,14 @@ bitboard getDangerSquares(Board& board) {
         danger |= (board.p & ~FileA) >> 9;
 
         // king
-        // left
-        danger |= (board.k & ~FileH) << 1;
-        // right
-        danger |= (board.k & ~FileA) >> 1;
-        // down
-        danger |= (board.k & ~Rank8) << 8;
-        // up
-        danger |= (board.k & ~Rank1) >> 8;
-        // left-down
-        danger |= ((board.k & ~FileH) & ~Rank8) << 9;
-        // right-down
-        danger |= ((board.k & ~FileA) & ~Rank8) << 7;
-        // left-up
-        danger |= ((board.k & ~FileH) & ~Rank1) >> 7;
-        // right-up
-        danger |= ((board.k & ~FileA) & ~Rank1) >> 9;
+        danger |= kingLookup[__builtin_ctzll(board.k)];
 
         // knight
-        // left-up
-        danger |= (board.n & ~(Rank8 | FileA | FileB)) << 6;
-        // up-left
-        danger |= (board.n & ~(FileA | Rank8 | Rank7)) << 15;
-        // up-right
-        danger |= (board.n & ~(FileH | Rank8 | Rank7)) << 17;
-        // right-up
-        danger |= (board.n & ~(Rank8 | FileH | FileG)) << 10;
-        // right-down
-        danger |= (board.n & ~(Rank1 | FileH | FileG)) >> 6;
-        // down-right
-        danger |= (board.n & ~(FileH | Rank1 | Rank2)) >> 15;
-        // down-left
-        danger |= (board.n & ~(FileA | Rank1 | Rank2)) >> 17;
-        // left-down
-        danger |= (board.n & ~(Rank1 | FileA | FileB)) >> 10;
+        moveMask = board.n;
+        while (moveMask) {
+            sq = popLSB(moveMask);
+            danger |= knightLookup[sq];
+        }
 
         // rook + queen
         // right
@@ -335,40 +312,14 @@ bitboard getDangerSquares(Board& board) {
         danger |= (board.P & ~FileH) << 9;
 
         // king
-        // left
-        danger |= (board.K & ~FileH) << 1;
-        // right
-        danger |= (board.K & ~FileA) >> 1;
-        // down
-        danger |= (board.K & ~Rank8) << 8;
-        // up
-        danger |= (board.K & ~Rank1) >> 8;
-        // left-down
-        danger |= ((board.K & ~FileH) & ~Rank8) << 9;
-        // right-down
-        danger |= ((board.K & ~FileA) & ~Rank8) << 7;
-        // left-up
-        danger |= ((board.K & ~FileH) & ~Rank1) >> 7;
-        // right-up
-        danger |= ((board.K & ~FileA) & ~Rank1) >> 9;
+        danger |= kingLookup[__builtin_ctzll(board.K)];
 
         // knight
-        // left-up
-        danger |= (board.N & ~(Rank8 | FileA | FileB)) << 6;
-        // up-left
-        danger |= (board.N & ~(FileA | Rank8 | Rank7)) << 15;
-        // up-right
-        danger |= (board.N & ~(FileH | Rank8 | Rank7)) << 17;
-        // right-up
-        danger |= (board.N & ~(Rank8 | FileH | FileG)) << 10;
-        // right-down
-        danger |= (board.N & ~(Rank1 | FileH | FileG)) >> 6;
-        // down-right
-        danger |= (board.N & ~(FileH | Rank1 | Rank2)) >> 15;
-        // down-left
-        danger |= (board.N & ~(FileA | Rank1 | Rank2)) >> 17;
-        // left-down
-        danger |= (board.N & ~(Rank1 | FileA | FileB)) >> 10;
+        moveMask = board.N;
+        while (moveMask) {
+            sq = popLSB(moveMask);
+            danger |= knightLookup[sq];
+        }
 
         // rook + queen
         // right
