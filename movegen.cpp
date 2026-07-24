@@ -2,6 +2,8 @@
 #include "board.h"
 #include "utility.h"
 
+#include <cstdint>
+
 
 void addMoves(std::vector<move>& moves, bitboard moveMask, int offset, uint16_t flags = 0b0000) {
     while (moveMask) {
@@ -14,6 +16,26 @@ void addMovesFromAttackMask(std::vector<move>& moves, bitboard moveMask, int ini
     while (moveMask) {
         int sq = popLSB(moveMask);
         moves.push_back((flags << 12) | (sq << 6) | initialSq);
+    }
+}
+
+void addPushPromotions(std::vector<move>& moves, bitboard moveMask, int offset) {
+    while (moveMask) {
+        int sq = popLSB(moveMask);
+        moves.push_back((0b1000 << 12) | (sq << 6) | (sq + offset));
+        moves.push_back((0b1001 << 12) | (sq << 6) | (sq + offset));
+        moves.push_back((0b1010 << 12) | (sq << 6) | (sq + offset));
+        moves.push_back((0b1011 << 12) | (sq << 6) | (sq + offset));
+    }
+}
+
+void addCapturePromotions(std::vector<move>& moves, bitboard moveMask, int offset) {
+    while (moveMask) {
+        int sq = popLSB(moveMask);
+        moves.push_back((0b1100 << 12) | (sq << 6) | (sq + offset));
+        moves.push_back((0b1101 << 12) | (sq << 6) | (sq + offset));
+        moves.push_back((0b1110 << 12) | (sq << 6) | (sq + offset));
+        moves.push_back((0b1111 << 12) | (sq << 6) | (sq + offset));
     }
 }
 
@@ -49,34 +71,13 @@ std::vector<move> moveGen(Board& board) {
         addMoves(moves, moveMask, -9, 0b0101);
         // pawn push promotion
         moveMask = (board.P << 8) & board.empty & Rank8;
-        for (int sq = 0; sq < 64; sq++) {
-            if (moveMask & (1ULL << sq)) {
-                moves.push_back((0b1000 << 12) | (sq << 6) | (sq - 8));
-                moves.push_back((0b1001 << 12) | (sq << 6) | (sq - 8));
-                moves.push_back((0b1010 << 12) | (sq << 6) | (sq - 8));
-                moves.push_back((0b1011 << 12) | (sq << 6) | (sq - 8));
-            }
-        }
+        addPushPromotions(moves, moveMask, -8);
         // left capture promotion
         moveMask = ((board.P & ~FileA) << 7) & board.black & Rank8;
-        for (int sq = 0; sq < 64; sq++) {
-            if (moveMask & (1ULL << sq)) {
-                moves.push_back((0b1100 << 12) | (sq << 6) | (sq - 7));
-                moves.push_back((0b1101 << 12) | (sq << 6) | (sq - 7));
-                moves.push_back((0b1110 << 12) | (sq << 6) | (sq - 7));
-                moves.push_back((0b1111 << 12) | (sq << 6) | (sq - 7));
-            }
-        }
+        addCapturePromotions(moves, moveMask, -7);
         // right capture promotion
         moveMask = ((board.P & ~FileH) << 9) & board.black & Rank8;
-        for (int sq = 0; sq < 64; sq++) {
-            if (moveMask & (1ULL << sq)) {
-                moves.push_back((0b1100 << 12) | (sq << 6) | (sq - 9));
-                moves.push_back((0b1101 << 12) | (sq << 6) | (sq - 9));
-                moves.push_back((0b1110 << 12) | (sq << 6) | (sq - 9));
-                moves.push_back((0b1111 << 12) | (sq << 6) | (sq - 9));
-            }
-        }
+        addCapturePromotions(moves, moveMask, -9);
     }
     else {
         // pawn push
@@ -103,34 +104,13 @@ std::vector<move> moveGen(Board& board) {
         addMoves(moves, moveMask, 9, 0b0101);
         // pawn push promotion
         moveMask = (board.p >> 8) & board.empty & Rank1;
-        for (int sq = 0; sq < 64; sq++) {
-            if (moveMask & (1ULL << sq)) {
-                moves.push_back((0b1000 << 12) | (sq << 6) | (sq + 8));
-                moves.push_back((0b1001 << 12) | (sq << 6) | (sq + 8));
-                moves.push_back((0b1010 << 12) | (sq << 6) | (sq + 8));
-                moves.push_back((0b1011 << 12) | (sq << 6) | (sq + 8));
-            }
-        }
+        addPushPromotions(moves, moveMask, 8);
         // left capture promotion
         moveMask = ((board.p & ~FileH) >> 7) & board.white & Rank1;
-        for (int sq = 0; sq < 64; sq++) {
-            if (moveMask & (1ULL << sq)) {
-                moves.push_back((0b1100 << 12) | (sq << 6) | (sq + 7));
-                moves.push_back((0b1101 << 12) | (sq << 6) | (sq + 7));
-                moves.push_back((0b1110 << 12) | (sq << 6) | (sq + 7));
-                moves.push_back((0b1111 << 12) | (sq << 6) | (sq + 7));
-            }
-        }
+        addCapturePromotions(moves, moveMask, 7);
         // right capture promotion
         moveMask = ((board.p & ~FileA) >> 9) & board.white & Rank1;
-        for (int sq = 0; sq < 64; sq++) {
-            if (moveMask & (1ULL << sq)) {
-                moves.push_back((0b1100 << 12) | (sq << 6) | (sq + 9));
-                moves.push_back((0b1101 << 12) | (sq << 6) | (sq + 9));
-                moves.push_back((0b1110 << 12) | (sq << 6) | (sq + 9));
-                moves.push_back((0b1111 << 12) | (sq << 6) | (sq + 9));
-            }
-        }
+        addCapturePromotions(moves, moveMask, 9);
     }
 
     // king moves

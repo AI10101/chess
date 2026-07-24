@@ -6,6 +6,7 @@ int main() {
 
     getKingLookup();
     getKnightLookup();
+    getRookLookup();
 
     perftTest();
 

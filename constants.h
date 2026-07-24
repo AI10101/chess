@@ -18,6 +18,10 @@ extern bitboard FileH;
 
 extern bitboard kingLookup[64];
 extern bitboard knightLookup[64];
+extern bitboard rookLookup[64];
+extern bitboard bishopLookup[64];
 
 void getKingLookup();
 void getKnightLookup();
+void getRookLookup();
+void getBishopLookup();

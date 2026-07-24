@@ -13,6 +13,8 @@ bitboard FileH = 0x8080808080808080;
 
 bitboard kingLookup[64];
 bitboard knightLookup[64];
+bitboard rookLookup[64];
+bitboard bishopLookup[64];
 
 void getKingLookup() {
     for (int sq=0; sq < 64; sq++) {
@@ -36,7 +38,6 @@ void getKnightLookup() {
     for (int sq=0; sq < 64; sq++) {
         bitboard mask = 1ULL << sq;
         bitboard attacks = 0ULL;
-
         
         attacks |= (mask & ~(Rank8 | FileA | FileB)) << 6;  // left-up
         attacks |= (mask & ~(FileA | Rank8 | Rank7)) << 15; // up-left
@@ -49,4 +50,46 @@ void getKnightLookup() {
 
         knightLookup[sq] = attacks;
     }
+}
+
+void getRookLookup() {
+    for (int sq=0; sq < 64; sq++) {
+        bitboard mask;
+        bitboard attacks = 0ULL;
+        
+        // right
+        mask = (1ULL << sq) & ~FileH;
+        while (mask) {
+            mask <<= 1;
+            attacks |= mask;
+            mask &= ~FileH;
+        }
+        // left
+        mask = (1ULL << sq) & ~FileA;
+        while (mask) {
+            mask >>= 1;
+            attacks |= mask;
+            mask &= ~FileA;
+        }
+        // up
+        mask = (1ULL << sq) & ~Rank8;
+        while (mask) {
+            mask <<= 8;
+            attacks |= mask;
+            mask &= ~Rank8;
+        }
+        // down
+        mask = (1ULL << sq) & ~Rank1;
+        while (mask) {
+            mask >>= 8;
+            attacks |= mask;
+            mask &= ~Rank1;
+        }
+
+        rookLookup[sq] = attacks;
+    }
+}
+
+void getBishopLookup() {
+
 }
