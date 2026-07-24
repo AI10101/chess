@@ -14,6 +14,27 @@ uint64_t FileG = 0x4040404040404040;
 uint64_t FileH = 0x8080808080808080;
 
 
+uint64_t kingLookup[64];
+
+void getKingLookup() {
+    for (int sq=0; sq < 64; sq++) {
+        uint64_t mask = 1ULL << sq;
+        uint64_t attacks = 0ULL;
+
+        attacks |= (mask & ~FileH) << 1; // right
+        attacks |= (mask & ~FileA) >> 1; // left
+        attacks |= (mask & ~Rank8) << 8; // up
+        attacks |= (mask & ~Rank1) >> 8; // down
+        attacks |= ((mask & ~FileH) & ~Rank8) << 9; // right-up
+        attacks |= ((mask & ~FileA) & ~Rank8) << 7; // left-up
+        attacks |= ((mask & ~FileH) & ~Rank1) >> 7; // right-down
+        attacks |= ((mask & ~FileA) & ~Rank1) >> 9; // left-down
+
+        kingLookup[sq] = attacks;
+    }
+}
+
+
 class Board {
   public:
     char board[64];
@@ -283,7 +304,12 @@ class Board {
         }
     }
 
-    
+    void addMovesFromAttackMask(vector<uint16_t>& moves, uint64_t moveMask, int initialSq, uint16_t flags = 0b0000) {
+        while (moveMask) {
+            int sq = popLSB(moveMask);
+            moves.push_back((flags << 12) | (sq << 6) | initialSq);
+        }
+    }
 
     vector<uint16_t> moveGen() {
         vector<uint16_t> moves;
@@ -403,200 +429,16 @@ class Board {
 
         // king moves
         if (whiteToMove) {
-            // right
-            moveMask = ((K & ~FileH) << 1) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 1));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 1));
-                    }
-                }
-            }
-            // left
-            moveMask = ((K & ~FileA) >> 1) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 1));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 1));
-                    }
-                }
-            }
-            // up
-            moveMask = ((K & ~Rank8) << 8) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 8));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 8));
-                    }
-                }
-            }
-            // down
-            moveMask = ((K & ~Rank1) >> 8) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 8));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 8));
-                    }
-                }
-            }
-            // right-up
-            moveMask = (((K & ~FileH) & ~Rank8) << 9) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 9));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 9));
-                    }
-                }
-            }
-            // left-up
-            moveMask = (((K & ~FileA) & ~Rank8) << 7) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 7));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 7));
-                    }
-                }
-            }
-            // right-down
-            moveMask = (((K & ~FileH) & ~Rank1) >> 7) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 7));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 7));
-                    }
-                }
-            }
-            // left-down
-            moveMask = (((K & ~FileA) & ~Rank1) >> 9) & (empty | black);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 9));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 9));
-                    }
-                }
-            }
+            int kingSq = __builtin_ctzll(K);
+            uint64_t attacks = kingLookup[kingSq];
+            addMovesFromAttackMask(moves, attacks & empty, kingSq);
+            addMovesFromAttackMask(moves, attacks & black, kingSq, 0b0100);
         }
         else {
-            // left
-            moveMask = ((k & ~FileH) << 1) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 1));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 1));
-                    }
-                }
-            }
-            // right
-            moveMask = ((k & ~FileA) >> 1) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 1));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 1));
-                    }
-                }
-            }
-            // down
-            moveMask = ((k & ~Rank8) << 8) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 8));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 8));
-                    }
-                }
-            }
-            // up
-            moveMask = ((k & ~Rank1) >> 8) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 8));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 8));
-                    }
-                }
-            }
-            // left-down
-            moveMask = (((k & ~FileH) & ~Rank8) << 9) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 9));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 9));
-                    }
-                }
-            }
-            // right-down
-            moveMask = (((k & ~FileA) & ~Rank8) << 7) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq - 7));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 7));
-                    }
-                }
-            }
-            // left-up
-            moveMask = (((k & ~FileH) & ~Rank1) >> 7) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 7));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 7));
-                    }
-                }
-            }
-            // right-up
-            moveMask = (((k & ~FileA) & ~Rank1) >> 9) & (empty | white);
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    if (empty & (1ULL << sq)) {
-                        moves.push_back((sq << 6) | (sq + 9));
-                    }
-                    else {
-                        moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 9));
-                    }
-                }
-            }
+            int kingSq = __builtin_ctzll(k);
+            uint64_t attacks = kingLookup[kingSq];
+            addMovesFromAttackMask(moves, attacks & empty, kingSq);
+            addMovesFromAttackMask(moves, attacks & white, kingSq, 0b0100);
         }
 
         // castling
@@ -1534,6 +1376,8 @@ void perftTest() {
 
 
 int main() {
+
+    getKingLookup();
 
     perftTest();
 
