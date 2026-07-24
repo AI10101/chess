@@ -1,5 +1,4 @@
 #include <bits/stdc++.h>
-#include <cstdint>
 using namespace std;
 
 
@@ -529,18 +528,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 1;
                 i++;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & black, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~FileH;
             }
             // left
@@ -549,18 +539,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 1;
                 i++;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & black, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~FileA;
             }
             // up
@@ -569,18 +550,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 8;
                 i += 8;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & black, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~Rank8;
             }
             // down
@@ -589,18 +561,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 8;
                 i += 8;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & black, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~Rank1;
             }
         }
@@ -611,18 +574,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 1;
                 i++;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & white, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~FileH;
             }
             // left
@@ -631,18 +585,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 1;
                 i++;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & white, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~FileA;
             }
             // up
@@ -651,18 +596,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 8;
                 i += 8;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & white, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~Rank8;
             }
             // down
@@ -671,18 +607,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 8;
                 i += 8;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & white, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~Rank1;
             }
         }
@@ -695,18 +622,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 9;
                 i += 9;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & black, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileH | Rank8);
             }
             // up-left
@@ -715,18 +633,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 7;
                 i += 7;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & black, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileA | Rank8);
             }
             // down-right
@@ -735,18 +644,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 7;
                 i += 7;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & black, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileH | Rank1);
             }
             // down-left
@@ -755,18 +655,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 9;
                 i += 9;
-                moveMask &= (empty | black);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~black;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & black, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileA | Rank1);
             }
         }
@@ -777,18 +668,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 9;
                 i += 9;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & white, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileH | Rank8);
             }
             // up-left
@@ -797,18 +679,9 @@ class Board {
             while (moveMask) {
                 moveMask <<= 7;
                 i += 7;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq - i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq - i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, -i);
+                addMoves(moves, moveMask & white, -i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileA | Rank8);
             }
             // down-right
@@ -817,18 +690,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 7;
                 i += 7;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & white, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileH | Rank1);
             }
             // down-left
@@ -837,18 +701,9 @@ class Board {
             while (moveMask) {
                 moveMask >>= 9;
                 i += 9;
-                moveMask &= (empty | white);
-                for (int sq = 0; sq < 64; sq++) {
-                    if (moveMask & (1ULL << sq)) {
-                        if (empty & (1ULL << sq)) {
-                            moves.push_back((sq << 6) | (sq + i));
-                        }
-                        else {
-                            moves.push_back((0b0100 << 12) | (sq << 6) | (sq + i));
-                        }
-                    }
-                }
-                moveMask &= ~white;
+                addMoves(moves, moveMask & empty, i);
+                addMoves(moves, moveMask & white, i, 0b0100);
+                moveMask &= empty;
                 moveMask &= ~(FileA | Rank1);
             }
         }
