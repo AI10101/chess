@@ -270,6 +270,19 @@ class Board {
         getExtras();
     }
 
+    int popLSB(uint64_t& bb) {
+        int sq = __builtin_ctzll(bb);
+        bb &= bb - 1;
+        return sq;
+    }
+
+    void addMoves(vector<uint16_t>& moves, uint64_t moveMask, int offset, uint16_t flags = 0b0000) {
+        while (moveMask) {
+            int sq = popLSB(moveMask);
+            moves.push_back((flags << 12) | (sq << 6) | (sq + offset));
+        }
+    }
+
     vector<uint16_t> moveGen() {
         vector<uint16_t> moves;
 
@@ -280,50 +293,26 @@ class Board {
         if (whiteToMove) {
             // pawn push
             moveMask = (P << 8) & empty & ~Rank8;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((sq << 6) | (sq - 8));
-                }
-            }
+            addMoves(moves, moveMask, -8);
             // double pawn push
             moveMask = ((((P & Rank2) << 8) & empty) << 8) & empty;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0001 << 12) | (sq << 6) | (sq - 16));
-                }
-            }
+            addMoves(moves, moveMask, -16, 0b0001);
             // left capture
             moveMask = ((P & ~FileA) << 7) & black & ~Rank8;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 7));
-                }
-            }
+            addMoves(moves, moveMask, -7, 0b0100);
             // right capture
             moveMask = ((P & ~FileH) << 9) & black & ~Rank8;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0100 << 12) | (sq << 6) | (sq - 9));
-                }
-            }
+            addMoves(moves, moveMask, -9, 0b0100);
             // ep left capture
             if (enPassantSquare != -1) {
                 moveMask = ((P & ~FileA) << 7) & (1ULL << enPassantSquare);
             } else moveMask = 0;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0101 << 12) | (sq << 6) | (sq - 7));
-                }
-            }
+            addMoves(moves, moveMask, -7, 0b0101);
             // ep right capture
             if (enPassantSquare != -1) {
                 moveMask = ((P & ~FileH) << 9) & (1ULL << enPassantSquare);
             } else moveMask = 0;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0101 << 12) | (sq << 6) | (sq - 9));
-                }
-            }
+            addMoves(moves, moveMask, -9, 0b0101);
             // pawn push promotion
             moveMask = (P << 8) & empty & Rank8;
             for (int sq = 0; sq < 64; sq++) {
@@ -358,50 +347,26 @@ class Board {
         else {
             // pawn push
             moveMask = (p >> 8) & empty & ~Rank1;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((sq << 6) | (sq + 8));
-                }
-            }
+            addMoves(moves, moveMask, 8);
             // double pawn push
             moveMask = ((((p & Rank7) >> 8) & empty) >> 8) & empty;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0001 << 12) | (sq << 6) | (sq + 16));
-                }
-            }
+            addMoves(moves, moveMask, 16, 0b0001);
             // left capture
             moveMask = ((p & ~FileH) >> 7) & white & ~Rank1;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 7));
-                }
-            }
+            addMoves(moves, moveMask, 7, 0b0100);
             // right capture
             moveMask = ((p & ~FileA) >> 9) & white & ~Rank1;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0100 << 12) | (sq << 6) | (sq + 9));
-                }
-            }
+            addMoves(moves, moveMask, 9, 0b0100);
             // ep left capture
             if (enPassantSquare != -1) {
                 moveMask = ((p & ~FileH) >> 7) & (1ULL << enPassantSquare);
             } else moveMask = 0;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0101 << 12) | (sq << 6) | (sq + 7));
-                }
-            }
+            addMoves(moves, moveMask, 7, 0b0101);
             // ep right capture
             if (enPassantSquare != -1) {
                 moveMask = ((p & ~FileA) >> 9) & (1ULL << enPassantSquare);
             } else moveMask = 0;
-            for (int sq = 0; sq < 64; sq++) {
-                if (moveMask & (1ULL << sq)) {
-                    moves.push_back((0b0101 << 12) | (sq << 6) | (sq + 9));
-                }
-            }
+            addMoves(moves, moveMask, 9, 0b0101);
             // pawn push promotion
             moveMask = (p >> 8) & empty & Rank1;
             for (int sq = 0; sq < 64; sq++) {
