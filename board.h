@@ -13,9 +13,9 @@ class Board {
     int enPassantSquare;
     int halfmoves, fullmoves;
 
-    bitboard K, Q, B, N, R, P; // white pieces
-    bitboard k, q, b, n, r, p; // black pieces
-    bitboard white, black, empty;
+    bitboard pieces[12]; // k, q, b, n, r, p, K, Q, B, N, R, P
+    bitboard colour[2]; // white, black
+    bitboard empty;
 };
 
 

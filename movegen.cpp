@@ -45,88 +45,81 @@ std::vector<move> moveGen(Board& board) {
 
     bitboard moveMask, mask, pieces;
     int from, to, flags, i, sq;
+    int us = board.whiteToMove;
 
     // pawn moves
     if (board.whiteToMove) {
         // pawn push
-        moveMask = (board.P << 8) & board.empty & ~Rank8;
+        moveMask = (board.pieces[11] << 8) & board.empty & ~Rank8;
         addMoves(moves, moveMask, -8);
         // double pawn push
-        moveMask = ((((board.P & Rank2) << 8) & board.empty) << 8) & board.empty;
+        moveMask = ((((board.pieces[11] & Rank2) << 8) & board.empty) << 8) & board.empty;
         addMoves(moves, moveMask, -16, 0b0001);
         // left capture
-        moveMask = ((board.P & ~FileA) << 7) & board.black & ~Rank8;
+        moveMask = ((board.pieces[11] & ~FileA) << 7) & board.colour[1] & ~Rank8;
         addMoves(moves, moveMask, -7, 0b0100);
         // right capture
-        moveMask = ((board.P & ~FileH) << 9) & board.black & ~Rank8;
+        moveMask = ((board.pieces[11] & ~FileH) << 9) & board.colour[1] & ~Rank8;
         addMoves(moves, moveMask, -9, 0b0100);
         // ep left capture
         if (board.enPassantSquare != -1) {
-            moveMask = ((board.P & ~FileA) << 7) & (1ULL << board.enPassantSquare);
+            moveMask = ((board.pieces[11] & ~FileA) << 7) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, moveMask, -7, 0b0101);
         // ep right capture
         if (board.enPassantSquare != -1) {
-            moveMask = ((board.P & ~FileH) << 9) & (1ULL << board.enPassantSquare);
+            moveMask = ((board.pieces[11] & ~FileH) << 9) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, moveMask, -9, 0b0101);
         // pawn push promotion
-        moveMask = (board.P << 8) & board.empty & Rank8;
+        moveMask = (board.pieces[11] << 8) & board.empty & Rank8;
         addPushPromotions(moves, moveMask, -8);
         // left capture promotion
-        moveMask = ((board.P & ~FileA) << 7) & board.black & Rank8;
+        moveMask = ((board.pieces[11] & ~FileA) << 7) & board.colour[1] & Rank8;
         addCapturePromotions(moves, moveMask, -7);
         // right capture promotion
-        moveMask = ((board.P & ~FileH) << 9) & board.black & Rank8;
+        moveMask = ((board.pieces[11] & ~FileH) << 9) & board.colour[1] & Rank8;
         addCapturePromotions(moves, moveMask, -9);
     }
     else {
         // pawn push
-        moveMask = (board.p >> 8) & board.empty & ~Rank1;
+        moveMask = (board.pieces[5] >> 8) & board.empty & ~Rank1;
         addMoves(moves, moveMask, 8);
         // double pawn push
-        moveMask = ((((board.p & Rank7) >> 8) & board.empty) >> 8) & board.empty;
+        moveMask = ((((board.pieces[5] & Rank7) >> 8) & board.empty) >> 8) & board.empty;
         addMoves(moves, moveMask, 16, 0b0001);
         // left capture
-        moveMask = ((board.p & ~FileH) >> 7) & board.white & ~Rank1;
+        moveMask = ((board.pieces[5] & ~FileH) >> 7) & board.colour[0] & ~Rank1;
         addMoves(moves, moveMask, 7, 0b0100);
         // right capture
-        moveMask = ((board.p & ~FileA) >> 9) & board.white & ~Rank1;
+        moveMask = ((board.pieces[5] & ~FileA) >> 9) & board.colour[0] & ~Rank1;
         addMoves(moves, moveMask, 9, 0b0100);
         // ep left capture
         if (board.enPassantSquare != -1) {
-            moveMask = ((board.p & ~FileH) >> 7) & (1ULL << board.enPassantSquare);
+            moveMask = ((board.pieces[5] & ~FileH) >> 7) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, moveMask, 7, 0b0101);
         // ep right capture
         if (board.enPassantSquare != -1) {
-            moveMask = ((board.p & ~FileA) >> 9) & (1ULL << board.enPassantSquare);
+            moveMask = ((board.pieces[5] & ~FileA) >> 9) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, moveMask, 9, 0b0101);
         // pawn push promotion
-        moveMask = (board.p >> 8) & board.empty & Rank1;
+        moveMask = (board.pieces[5] >> 8) & board.empty & Rank1;
         addPushPromotions(moves, moveMask, 8);
         // left capture promotion
-        moveMask = ((board.p & ~FileH) >> 7) & board.white & Rank1;
+        moveMask = ((board.pieces[5] & ~FileH) >> 7) & board.colour[0] & Rank1;
         addCapturePromotions(moves, moveMask, 7);
         // right capture promotion
-        moveMask = ((board.p & ~FileA) >> 9) & board.white & Rank1;
+        moveMask = ((board.pieces[5] & ~FileA) >> 9) & board.colour[0] & Rank1;
         addCapturePromotions(moves, moveMask, 9);
     }
 
     // king moves
-    if (board.whiteToMove) {
-        int kingSq = __builtin_ctzll(board.K);
-        uint64_t attacks = kingLookup[kingSq];
-        addMovesFromAttackMask(moves, attacks & board.empty, kingSq);
-        addMovesFromAttackMask(moves, attacks & board.black, kingSq, 0b0100);
-    }
-    else {
-        int kingSq = __builtin_ctzll(board.k);
-        uint64_t attacks = kingLookup[kingSq];
-        addMovesFromAttackMask(moves, attacks & board.empty, kingSq);
-        addMovesFromAttackMask(moves, attacks & board.white, kingSq, 0b0100);
-    }
+    int kingSq = __builtin_ctzll(board.pieces[us*6]);
+    uint64_t attacks = kingLookup[kingSq];
+    addMovesFromAttackMask(moves, attacks & board.empty, kingSq);
+    addMovesFromAttackMask(moves, attacks & board.colour[us], kingSq, 0b0100);
 
     // castling
     if (board.whiteToMove) {
@@ -167,71 +160,34 @@ std::vector<move> moveGen(Board& board) {
     }
 
     // knight moves
-    if (board.whiteToMove) {
-        moveMask = board.N;
-        while (moveMask) {
-            int knightSq = popLSB(moveMask);
-            uint64_t attacks = knightLookup[knightSq];
-            addMovesFromAttackMask(moves, attacks & board.empty, knightSq);
-            addMovesFromAttackMask(moves, attacks & board.black, knightSq, 0b0100);
-        }
-    }
-    else {
-        moveMask = board.n;
-        while (moveMask) {
-            int knightSq = popLSB(moveMask);
-            uint64_t attacks = knightLookup[knightSq];
-            addMovesFromAttackMask(moves, attacks & board.empty, knightSq);
-            addMovesFromAttackMask(moves, attacks & board.white, knightSq, 0b0100);
-        }
+    moveMask = board.pieces[us*6 + 3];
+    while (moveMask) {
+        int knightSq = popLSB(moveMask);
+        uint64_t attacks = knightLookup[knightSq];
+        addMovesFromAttackMask(moves, attacks & board.empty, knightSq);
+        addMovesFromAttackMask(moves, attacks & board.colour[us], knightSq, 0b0100);
     }
 
     // rook + queen moves
-    if (board.whiteToMove) {
-        moveMask = board.R | board.Q;
-        while (moveMask) {
-            sq = popLSB(moveMask);
-            mask = rookLookup[sq];
-            pieces = _pext_u64(~board.empty, mask);
-            mask = rookMagic[sq][pieces];
-            addMovesFromAttackMask(moves, mask & board.empty, sq);
-            addMovesFromAttackMask(moves, mask & board.black, sq, 0b0100);
-        }
-    }
-    else {
-        moveMask = board.r | board.q;
-        while (moveMask) {
-            sq = popLSB(moveMask);
-            mask = rookLookup[sq];
-            pieces = _pext_u64(~board.empty, mask);
-            mask = rookMagic[sq][pieces];
-            addMovesFromAttackMask(moves, mask & board.empty, sq);
-            addMovesFromAttackMask(moves, mask & board.white, sq, 0b0100);
-        }
+    moveMask = board.pieces[us*6 + 4] | board.pieces[us*6 + 1];
+    while (moveMask) {
+        sq = popLSB(moveMask);
+        mask = rookLookup[sq];
+        pieces = _pext_u64(~board.empty, mask);
+        mask = rookMagic[sq][pieces];
+        addMovesFromAttackMask(moves, mask & board.empty, sq);
+        addMovesFromAttackMask(moves, mask & board.colour[us], sq, 0b0100);
     }
 
     // bishop + queen moves
-    if (board.whiteToMove) {
-        moveMask = board.B | board.Q;
-        while (moveMask) {
-            sq = popLSB(moveMask);
-            mask = bishopLookup[sq];
-            pieces = _pext_u64(~board.empty, mask);
-            mask = bishopMagic[sq][pieces];
-            addMovesFromAttackMask(moves, mask & board.empty, sq);
-            addMovesFromAttackMask(moves, mask & board.black, sq, 0b0100);
-        }
-    }
-    else {
-        moveMask = board.b | board.q;
-        while (moveMask) {
-            sq = popLSB(moveMask);
-            mask = bishopLookup[sq];
-            pieces = _pext_u64(~board.empty, mask);
-            mask = bishopMagic[sq][pieces];
-            addMovesFromAttackMask(moves, mask & board.empty, sq);
-            addMovesFromAttackMask(moves, mask & board.white, sq, 0b0100);
-        }
+    moveMask = board.pieces[us*6 + 2] | board.pieces[us*6 + 1];
+    while (moveMask) {
+        sq = popLSB(moveMask);
+        mask = bishopLookup[sq];
+        pieces = _pext_u64(~board.empty, mask);
+        mask = bishopMagic[sq][pieces];
+        addMovesFromAttackMask(moves, mask & board.empty, sq);
+        addMovesFromAttackMask(moves, mask & board.colour[us], sq, 0b0100);
     }
 
     return moves;
@@ -248,12 +204,12 @@ std::vector<move> legalMoveGen(Board& board) {
 
         next.whiteToMove = !next.whiteToMove;
         if (next.whiteToMove) {
-            if ((getDangerSquares(next) & next.K) == 0) {
+            if ((getDangerSquares(next) & next.pieces[6]) == 0) {
                 legalMoves.push_back(m);
             }
         }
         else {
-            if ((getDangerSquares(next) & next.k) == 0) {
+            if ((getDangerSquares(next) & next.pieces[0]) == 0) {
                 legalMoves.push_back(m);
             }
         }
