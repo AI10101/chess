@@ -4,15 +4,15 @@
 #include <immintrin.h>
 
 
-bitboard Rank1 = 0xff;
-bitboard Rank2 = 0xff00;
-bitboard Rank7 = 0xff000000000000;
-bitboard Rank8 = 0xff00000000000000;
+bitboard const Rank1 = 0xff;
+bitboard const Rank2 = 0xff00;
+bitboard const Rank7 = 0xff000000000000;
+bitboard const Rank8 = 0xff00000000000000;
 
-bitboard FileA = 0x101010101010101;
-bitboard FileB = 0x202020202020202;
-bitboard FileG = 0x4040404040404040;
-bitboard FileH = 0x8080808080808080;
+bitboard const FileA = 0x101010101010101;
+bitboard const FileB = 0x202020202020202;
+bitboard const FileG = 0x4040404040404040;
+bitboard const FileH = 0x8080808080808080;
 
 bitboard kingLookup[64];
 bitboard knightLookup[64];
@@ -64,29 +64,29 @@ void getRookLookup() {
         mask = (1ULL << sq) & ~FileH;
         while (mask) {
             mask <<= 1;
-            attacks |= mask;
             mask &= ~FileH;
+            attacks |= mask;
         }
         // left
         mask = (1ULL << sq) & ~FileA;
         while (mask) {
             mask >>= 1;
-            attacks |= mask;
             mask &= ~FileA;
+            attacks |= mask;
         }
         // up
         mask = (1ULL << sq) & ~Rank8;
         while (mask) {
             mask <<= 8;
-            attacks |= mask;
             mask &= ~Rank8;
+            attacks |= mask;
         }
         // down
         mask = (1ULL << sq) & ~Rank1;
         while (mask) {
             mask >>= 8;
-            attacks |= mask;
             mask &= ~Rank1;
+            attacks |= mask;
         }
 
         rookLookup[sq] = attacks;
@@ -102,37 +102,37 @@ void getBishopLookup() {
         mask = (1ULL << sq) & ~(FileH | Rank8);
         while (mask) {
             mask <<= 9;
-            attacks |= mask;
             mask &= ~(FileH | Rank8);
+            attacks |= mask;
         }
         // up-left
         mask = (1ULL << sq) & ~(FileA | Rank8);
         while (mask) {
             mask <<= 7;
-            attacks |= mask;
             mask &= ~(FileA | Rank8);
+            attacks |= mask;
         }
         // down-right
         mask = (1ULL << sq) & ~(FileH | Rank1);
         while (mask) {
             mask >>= 7;
-            attacks |= mask;
             mask &= ~(FileH | Rank1);
+            attacks |= mask;
         }
         // down-left
         mask = (1ULL << sq) & ~(FileA | Rank1);
         while (mask) {
             mask >>= 9;
-            attacks |= mask;
             mask &= ~(FileA | Rank1);
+            attacks |= mask;
         }
 
         bishopLookup[sq] = attacks;
     }
 }
 
-bitboard rookMagic[64][16384];
-bitboard bishopMagic[64][8192];
+bitboard rookMagic[64][4096];
+bitboard bishopMagic[64][512];
 
 void getRookMagic() {
     for (int sq=0; sq < 64; sq++) {
@@ -140,7 +140,7 @@ void getRookMagic() {
 
         bitboard rookMovementMask = rookLookup[sq];
 
-        for (uint64_t pieces = 0; pieces < 16384; pieces++) {
+        for (uint64_t pieces = 0; pieces < (1ULL << __builtin_popcountll(rookMovementMask)); pieces++) {
             bitboard board = _pdep_u64(pieces, rookMovementMask);
 
             bitboard attacks = 0ULL;
