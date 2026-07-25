@@ -212,95 +212,25 @@ std::vector<move> moveGen(Board& board) {
 
     // bishop + queen moves
     if (board.whiteToMove) {
-        // up-right
-        moveMask = (board.B | board.Q) & ~(FileH | Rank8);
-        i = 0;
+        moveMask = board.B | board.Q;
         while (moveMask) {
-            moveMask <<= 9;
-            i += 9;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.black, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank8);
-        }
-        // up-left
-        moveMask = (board.B | board.Q) & ~(FileA | Rank8);
-        i = 0;
-        while (moveMask) {
-            moveMask <<= 7;
-            i += 7;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.black, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank8);
-        }
-        // down-right
-        moveMask = (board.B | board.Q) & ~(FileH | Rank1);
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 7;
-            i += 7;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.black, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank1);
-        }
-        // down-left
-        moveMask = (board.B | board.Q) & ~(FileA | Rank1);
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 9;
-            i += 9;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.black, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank1);
+            sq = popLSB(moveMask);
+            mask = bishopLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            mask = bishopMagic[sq][pieces];
+            addMovesFromAttackMask(moves, mask & board.empty, sq);
+            addMovesFromAttackMask(moves, mask & board.black, sq, 0b0100);
         }
     }
     else {
-        // up-right
-        moveMask = (board.b | board.q) & ~(FileH | Rank8);
-        i = 0;
+        moveMask = board.b | board.q;
         while (moveMask) {
-            moveMask <<= 9;
-            i += 9;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.white, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank8);
-        }
-        // up-left
-        moveMask = (board.b | board.q) & ~(FileA | Rank8);
-        i = 0;
-        while (moveMask) {
-            moveMask <<= 7;
-            i += 7;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.white, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank8);
-        }
-        // down-right
-        moveMask = (board.b | board.q) & ~(FileH | Rank1);
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 7;
-            i += 7;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.white, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank1);
-        }
-        // down-left
-        moveMask = (board.b | board.q) & ~(FileA | Rank1);
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 9;
-            i += 9;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.white, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank1);
+            sq = popLSB(moveMask);
+            mask = bishopLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            mask = bishopMagic[sq][pieces];
+            addMovesFromAttackMask(moves, mask & board.empty, sq);
+            addMovesFromAttackMask(moves, mask & board.white, sq, 0b0100);
         }
     }
 

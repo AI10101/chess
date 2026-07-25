@@ -94,10 +94,45 @@ void getRookLookup() {
 }
 
 void getBishopLookup() {
+    for (int sq=0; sq < 64; sq++) {
+        bitboard mask;
+        bitboard attacks = 0ULL;
+        
+        // up-right
+        mask = (1ULL << sq) & ~(FileH | Rank8);
+        while (mask) {
+            mask <<= 9;
+            attacks |= mask;
+            mask &= ~(FileH | Rank8);
+        }
+        // up-left
+        mask = (1ULL << sq) & ~(FileA | Rank8);
+        while (mask) {
+            mask <<= 7;
+            attacks |= mask;
+            mask &= ~(FileA | Rank8);
+        }
+        // down-right
+        mask = (1ULL << sq) & ~(FileH | Rank1);
+        while (mask) {
+            mask >>= 7;
+            attacks |= mask;
+            mask &= ~(FileH | Rank1);
+        }
+        // down-left
+        mask = (1ULL << sq) & ~(FileA | Rank1);
+        while (mask) {
+            mask >>= 9;
+            attacks |= mask;
+            mask &= ~(FileA | Rank1);
+        }
 
+        bishopLookup[sq] = attacks;
+    }
 }
 
 bitboard rookMagic[64][16384];
+bitboard bishopMagic[64][8192];
 
 void getRookMagic() {
     for (int sq=0; sq < 64; sq++) {
@@ -144,6 +179,55 @@ void getRookMagic() {
             }
 
             rookMagic[sq][pieces] = attacks;
+        }
+    }
+};
+
+void getBishopMagic() {
+    for (int sq=0; sq < 64; sq++) {
+        bitboard mask;
+
+        bitboard bishopMovementMask = bishopLookup[sq];
+
+        for (uint64_t pieces = 0; pieces < (1ULL << __builtin_popcountll(bishopMovementMask)); pieces++) {
+            bitboard board = _pdep_u64(pieces, bishopMovementMask);
+
+            bitboard attacks = 0ULL;
+            
+            // up-right
+            mask = (1ULL << sq) & ~(FileH | Rank8);
+            while (mask) {
+                mask <<= 9;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~(FileH | Rank8);
+            }
+            // up-left
+            mask = (1ULL << sq) & ~(FileA | Rank8);
+            while (mask) {
+                mask <<= 7;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~(FileA | Rank8);
+            }
+            // down-right
+            mask = (1ULL << sq) & ~(FileH | Rank1);
+            while (mask) {
+                mask >>= 7;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~(FileH | Rank1);
+            }
+            // down-left
+            mask = (1ULL << sq) & ~(FileA | Rank1);
+            while (mask) {
+                mask >>= 9;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~(FileA | Rank1);
+            }
+
+            bishopMagic[sq][pieces] = attacks;
         }
     }
 };

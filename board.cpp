@@ -249,37 +249,12 @@ bitboard getDangerSquares(Board& board) {
         }
 
         // bishop + queen
-        // up-right
-        moveMask = (board.b | board.q) & ~(FileH | Rank8);
+        moveMask = board.b | board.q;
         while (moveMask) {
-            moveMask <<= 9;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank8);
-        }
-        // up-left
-        moveMask = (board.b | board.q) & ~(FileA | Rank8);
-        while (moveMask) {
-            moveMask <<= 7;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank8);
-        }
-        // down-right
-        moveMask = (board.b | board.q) & ~(FileH | Rank1);
-        while (moveMask) {
-            moveMask >>= 7;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank1);
-        }
-        // down-left
-        moveMask = (board.b | board.q) & ~(FileA | Rank1);
-        while (moveMask) {
-            moveMask >>= 9;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank1);
+            sq = popLSB(moveMask);
+            mask = bishopLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            danger |= bishopMagic[sq][pieces];
         }
     }
     else {
@@ -309,37 +284,12 @@ bitboard getDangerSquares(Board& board) {
         }
 
         // bishop + queen
-        // up-right
-        moveMask = (board.B | board.Q) & ~(FileH | Rank8);
+        moveMask = board.B | board.Q;
         while (moveMask) {
-            moveMask <<= 9;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank8);
-        }
-        // up-left
-        moveMask = (board.B | board.Q) & ~(FileA | Rank8);
-        while (moveMask) {
-            moveMask <<= 7;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank8);
-        }
-        // down-right
-        moveMask = (board.B | board.Q) & ~(FileH | Rank1);
-        while (moveMask) {
-            moveMask >>= 7;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileH | Rank1);
-        }
-        // down-left
-        moveMask = (board.B | board.Q) & ~(FileA | Rank1);
-        while (moveMask) {
-            moveMask >>= 9;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~(FileA | Rank1);
+            sq = popLSB(moveMask);
+            mask = bishopLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            danger |= bishopMagic[sq][pieces];
         }
     }
 
