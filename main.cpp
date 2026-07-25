@@ -8,6 +8,8 @@ int main() {
     getKnightLookup();
     getRookLookup();
 
+    getRookMagic();
+
     perftTest();
 
     return 0;

@@ -3,6 +3,7 @@
 #include "utility.h"
 
 #include <cstdint>
+#include <immintrin.h>
 
 
 void addMoves(std::vector<move>& moves, bitboard moveMask, int offset, uint16_t flags = 0b0000) {
@@ -42,8 +43,8 @@ void addCapturePromotions(std::vector<move>& moves, bitboard moveMask, int offse
 std::vector<move> moveGen(Board& board) {
     std::vector<move> moves;
 
-    bitboard moveMask;
-    int from, to, flags, i;
+    bitboard moveMask, mask, pieces;
+    int from, to, flags, i, sq;
 
     // pawn moves
     if (board.whiteToMove) {
@@ -187,95 +188,25 @@ std::vector<move> moveGen(Board& board) {
 
     // rook + queen moves
     if (board.whiteToMove) {
-        // right
-        moveMask = (board.R | board.Q) & ~FileH;
-        i = 0;
+        moveMask = board.R | board.Q;
         while (moveMask) {
-            moveMask <<= 1;
-            i++;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.black, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~FileH;
-        }
-        // left
-        moveMask = (board.R | board.Q) & ~FileA;
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 1;
-            i++;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.black, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~FileA;
-        }
-        // up
-        moveMask = (board.R | board.Q) & ~Rank8;
-        i = 0;
-        while (moveMask) {
-            moveMask <<= 8;
-            i += 8;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.black, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~Rank8;
-        }
-        // down
-        moveMask = (board.R | board.Q) & ~Rank1;
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 8;
-            i += 8;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.black, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~Rank1;
+            sq = popLSB(moveMask);
+            mask = rookLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            mask = rookMagic[sq][pieces];
+            addMovesFromAttackMask(moves, mask & board.empty, sq);
+            addMovesFromAttackMask(moves, mask & board.black, sq, 0b0100);
         }
     }
     else {
-        // right
-        moveMask = (board.r | board.q) & ~FileH;
-        i = 0;
+        moveMask = board.r | board.q;
         while (moveMask) {
-            moveMask <<= 1;
-            i++;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.white, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~FileH;
-        }
-        // left
-        moveMask = (board.r | board.q) & ~FileA;
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 1;
-            i++;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.white, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~FileA;
-        }
-        // up
-        moveMask = (board.r | board.q) & ~Rank8;
-        i = 0;
-        while (moveMask) {
-            moveMask <<= 8;
-            i += 8;
-            addMoves(moves, moveMask & board.empty, -i);
-            addMoves(moves, moveMask & board.white, -i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~Rank8;
-        }
-        // down
-        moveMask = (board.r | board.q) & ~Rank1;
-        i = 0;
-        while (moveMask) {
-            moveMask >>= 8;
-            i += 8;
-            addMoves(moves, moveMask & board.empty, i);
-            addMoves(moves, moveMask & board.white, i, 0b0100);
-            moveMask &= board.empty;
-            moveMask &= ~Rank1;
+            sq = popLSB(moveMask);
+            mask = rookLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            mask = rookMagic[sq][pieces];
+            addMovesFromAttackMask(moves, mask & board.empty, sq);
+            addMovesFromAttackMask(moves, mask & board.white, sq, 0b0100);
         }
     }
 

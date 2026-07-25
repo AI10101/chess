@@ -3,6 +3,7 @@
 #include "utility.h"
 
 #include <sstream>
+#include <immintrin.h>
 
 
 void getExtras(Board& board) {
@@ -218,6 +219,8 @@ bitboard getDangerSquares(Board& board) {
     uint64_t danger = 0ULL;
     uint64_t moveMask = 0ULL;
     int sq;
+    bitboard mask;
+    uint64_t pieces;
 
     if (board.whiteToMove) {
         // pawns
@@ -237,37 +240,12 @@ bitboard getDangerSquares(Board& board) {
         }
 
         // rook + queen
-        // right
-        moveMask = (board.r | board.q) & ~FileH;
+        moveMask = board.r | board.q;
         while (moveMask) {
-            moveMask <<= 1;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~FileH;
-        }
-        // left
-        moveMask = (board.r | board.q) & ~FileA;
-        while (moveMask) {
-            moveMask >>= 1;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~FileA;
-        }
-        // up
-        moveMask = (board.r | board.q) & ~Rank8;
-        while (moveMask) {
-            moveMask <<= 8;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~Rank8;
-        }
-        // down
-        moveMask = (board.r | board.q) & ~Rank1;
-        while (moveMask) {
-            moveMask >>= 8;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~Rank1;
+            sq = popLSB(moveMask);
+            mask = rookLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            danger |= rookMagic[sq][pieces];
         }
 
         // bishop + queen
@@ -322,37 +300,12 @@ bitboard getDangerSquares(Board& board) {
         }
 
         // rook + queen
-        // right
-        moveMask = (board.R | board.Q) & ~FileH;
+        moveMask = board.R | board.Q;
         while (moveMask) {
-            moveMask <<= 1;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~FileH;
-        }
-        // left
-        moveMask = (board.R | board.Q) & ~FileA;
-        while (moveMask) {
-            moveMask >>= 1;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~FileA;
-        }
-        // up
-        moveMask = (board.R | board.Q) & ~Rank8;
-        while (moveMask) {
-            moveMask <<= 8;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~Rank8;
-        }
-        // down
-        moveMask = (board.R | board.Q) & ~Rank1;
-        while (moveMask) {
-            moveMask >>= 8;
-            danger |= moveMask;
-            moveMask &= board.empty;
-            moveMask &= ~Rank1;
+            sq = popLSB(moveMask);
+            mask = rookLookup[sq];
+            pieces = _pext_u64(~board.empty, mask);
+            danger |= rookMagic[sq][pieces];
         }
 
         // bishop + queen

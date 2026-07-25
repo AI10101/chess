@@ -1,5 +1,8 @@
 #include "constants.h"
 
+#include <cstdint>
+#include <immintrin.h>
+
 
 bitboard Rank1 = 0xff;
 bitboard Rank2 = 0xff00;
@@ -93,3 +96,54 @@ void getRookLookup() {
 void getBishopLookup() {
 
 }
+
+bitboard rookMagic[64][16384];
+
+void getRookMagic() {
+    for (int sq=0; sq < 64; sq++) {
+        bitboard mask;
+
+        bitboard rookMovementMask = rookLookup[sq];
+
+        for (uint64_t pieces = 0; pieces < 16384; pieces++) {
+            bitboard board = _pdep_u64(pieces, rookMovementMask);
+
+            bitboard attacks = 0ULL;
+            
+            // right
+            mask = (1ULL << sq) & ~FileH;
+            while (mask) {
+                mask <<= 1;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~FileH;
+            }
+            // left
+            mask = (1ULL << sq) & ~FileA;
+            while (mask) {
+                mask >>= 1;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~FileA;
+            }
+            // up
+            mask = (1ULL << sq) & ~Rank8;
+            while (mask) {
+                mask <<= 8;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~Rank8;
+            }
+            // down
+            mask = (1ULL << sq) & ~Rank1;
+            while (mask) {
+                mask >>= 8;
+                attacks |= mask;
+                mask &= ~board;
+                mask &= ~Rank1;
+            }
+
+            rookMagic[sq][pieces] = attacks;
+        }
+    }
+};

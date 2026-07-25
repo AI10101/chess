@@ -25,3 +25,7 @@ void getKingLookup();
 void getKnightLookup();
 void getRookLookup();
 void getBishopLookup();
+
+extern bitboard rookMagic[64][16384];
+
+void getRookMagic();
