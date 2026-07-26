@@ -16,4 +16,4 @@ void addCapturePromotions(std::vector<move>& moves, bitboard moveMask, int offse
 
 std::vector<move> moveGen(Board& board);
 
-std::vector<move> legalMoveGen(Board& board);
+void legalMoveGen(Board& board, std::vector<move>& moves);

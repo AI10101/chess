@@ -8,4 +8,8 @@ void printBoard(Board& board);
 
 void printBitboard(const bitboard& bitboard);
 
-int popLSB(bitboard& bb);
+inline int popLSB(bitboard& bb) {
+    int sq = __builtin_ctzll(bb);
+    bb &= bb - 1;
+    return sq;
+}

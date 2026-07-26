@@ -4,11 +4,6 @@
 
 int main() {
 
-    getKingLookup();
-    getKnightLookup();
-    getRookLookup();
-    getBishopLookup();
-
     getRookMagic();
     getBishopMagic();
 

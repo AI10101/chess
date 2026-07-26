@@ -215,6 +215,49 @@ void makeMove(const uint16_t& move, Board& board) {
     getExtras(board);
 }
 
+bool isKingSafe(Board& board) {
+    int us = board.whiteToMove;
+    int them = us ^ 1;
+
+    int enemyKingSq = __builtin_ctzll(board.pieces[them*6]);
+
+    bitboard danger = 0ULL;
+
+    bitboard mask, pieces;
+
+    // king
+    danger |= kingLookup[enemyKingSq] & board.pieces[us*6];
+
+    // knight
+    danger |= knightLookup[enemyKingSq] & board.pieces[us*6 + 3];
+
+    // rook + queen
+    mask = rookLookup[enemyKingSq];
+    pieces = _pext_u64(~board.empty, mask);
+    danger |= rookMagic[enemyKingSq][pieces] & (board.pieces[us*6 + 4] | board.pieces[us*6 + 1]);
+
+    // bishop + queen
+    mask = bishopLookup[enemyKingSq];
+    pieces = _pext_u64(~board.empty, mask);
+    danger |= bishopMagic[enemyKingSq][pieces] & (board.pieces[us*6 + 2] | board.pieces[us*6 + 1]);
+
+    // pawns
+    if (board.whiteToMove) {
+        // left capture
+        danger |= ((board.pieces[11] & ~FileA) << 7) & board.pieces[them*6];
+        // right capture
+        danger |= ((board.pieces[11] & ~FileH) << 9) & board.pieces[them*6];
+    }
+    else {
+        // left capture
+        danger |= ((board.pieces[5] & ~FileH) >> 7) & board.pieces[them*6];
+        // right capture
+        danger |= ((board.pieces[5] & ~FileA) >> 9) & board.pieces[them*6];
+    }
+
+    return (danger == 0);
+}
+
 bitboard getDangerSquares(Board& board) {
     uint64_t danger = 0ULL;
     uint64_t moveMask = 0ULL;

@@ -42,9 +42,8 @@ void addCapturePromotions(std::vector<move>& moves, bitboard moveMask, int offse
 
 std::vector<move> moveGen(Board& board) {
     std::vector<move> moves;
-
     bitboard moveMask, mask, pieces;
-    int from, to, flags, i, sq;
+    int sq;
     int us = board.whiteToMove;
 
     // pawn moves
@@ -191,29 +190,4 @@ std::vector<move> moveGen(Board& board) {
     }
 
     return moves;
-}
-
-std::vector<move> legalMoveGen(Board& board) {
-    std::vector<move> pseudoMoves = moveGen(board);
-
-    std::vector<move> legalMoves;
-
-    for (move m : pseudoMoves) {
-        Board next = board;
-        makeMove(m, next);
-
-        next.whiteToMove = !next.whiteToMove;
-        if (next.whiteToMove) {
-            if ((getDangerSquares(next) & next.pieces[6]) == 0) {
-                legalMoves.push_back(m);
-            }
-        }
-        else {
-            if ((getDangerSquares(next) & next.pieces[0]) == 0) {
-                legalMoves.push_back(m);
-            }
-        }
-    }
-
-    return legalMoves;
 }

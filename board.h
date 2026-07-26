@@ -25,4 +25,6 @@ void loadFEN(const std::string& s, Board& board);
 
 void makeMove(const uint16_t& move, Board& board);
 
+bool isKingSafe(Board& board);
+
 bitboard getDangerSquares(Board& board);

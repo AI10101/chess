@@ -1,30 +1,157 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 
 
 using bitboard = uint64_t;
 using move = uint16_t;
 
-extern const bitboard Rank1;
-extern const bitboard Rank2;
-extern const bitboard Rank7;
-extern const bitboard Rank8;
 
-extern const bitboard FileA;
-extern const bitboard FileB;
-extern const bitboard FileG;
-extern const bitboard FileH;
+constexpr bitboard Rank1 = 0xff;
+constexpr bitboard Rank2 = 0xff00;
+constexpr bitboard Rank7 = 0xff000000000000;
+constexpr bitboard Rank8 = 0xff00000000000000;
 
-extern bitboard kingLookup[64];
-extern bitboard knightLookup[64];
-extern bitboard rookLookup[64];
-extern bitboard bishopLookup[64];
+constexpr bitboard FileA = 0x101010101010101;
+constexpr bitboard FileB = 0x202020202020202;
+constexpr bitboard FileG = 0x4040404040404040;
+constexpr bitboard FileH = 0x8080808080808080;
 
-void getKingLookup();
-void getKnightLookup();
-void getRookLookup();
-void getBishopLookup();
+
+constexpr std::array<bitboard, 64> initKingLookup() {
+    std::array<bitboard, 64> lookup{};
+
+    for (int sq=0; sq < 64; sq++) {
+        bitboard piece = 1ULL << sq;
+        bitboard attacks = 0ULL;
+
+        attacks |= (piece & ~FileH) << 1; // right
+        attacks |= (piece & ~FileA) >> 1; // left
+        attacks |= (piece & ~Rank8) << 8; // up
+        attacks |= (piece & ~Rank1) >> 8; // down
+        attacks |= (piece & ~FileH & ~Rank8) << 9; // right-up
+        attacks |= (piece & ~FileA & ~Rank8) << 7; // left-up
+        attacks |= (piece & ~FileH & ~Rank1) >> 7; // right-down
+        attacks |= (piece & ~FileA & ~Rank1) >> 9; // left-down
+
+        lookup[sq] = attacks;
+    }
+
+    return lookup;
+}
+
+constexpr std::array<bitboard, 64> initKnightLookup() {
+    std::array<bitboard, 64> lookup{};
+
+    for (int sq=0; sq < 64; sq++) {
+        bitboard piece = 1ULL << sq;
+        bitboard attacks = 0ULL;
+        
+        attacks |= (piece & ~(Rank8 | FileA | FileB)) << 6;  // left-up
+        attacks |= (piece & ~(FileA | Rank8 | Rank7)) << 15; // up-left
+        attacks |= (piece & ~(FileH | Rank8 | Rank7)) << 17; // up-right
+        attacks |= (piece & ~(Rank8 | FileH | FileG)) << 10; // right-up
+        attacks |= (piece & ~(Rank1 | FileH | FileG)) >> 6;  // right-down
+        attacks |= (piece & ~(FileH | Rank1 | Rank2)) >> 15; // down-right
+        attacks |= (piece & ~(FileA | Rank1 | Rank2)) >> 17; // down-left
+        attacks |= (piece & ~(Rank1 | FileA | FileB)) >> 10; // left-down
+
+        lookup[sq] = attacks;
+    }
+
+    return lookup;
+}
+
+constexpr std::array<bitboard, 64> initRookLookup() {
+    std::array<bitboard, 64> lookup{};
+
+    for (int sq=0; sq < 64; sq++) {
+        bitboard piece = 0ULL;
+        bitboard attacks = 0ULL;
+        
+        // right
+        piece = (1ULL << sq) & ~FileH;
+        while (piece) {
+            piece <<= 1;
+            piece &= ~FileH;
+            attacks |= piece;
+        }
+        // left
+        piece = (1ULL << sq) & ~FileA;
+        while (piece) {
+            piece >>= 1;
+            piece &= ~FileA;
+            attacks |= piece;
+        }
+        // up
+        piece = (1ULL << sq) & ~Rank8;
+        while (piece) {
+            piece <<= 8;
+            piece &= ~Rank8;
+            attacks |= piece;
+        }
+        // down
+        piece = (1ULL << sq) & ~Rank1;
+        while (piece) {
+            piece >>= 8;
+            piece &= ~Rank1;
+            attacks |= piece;
+        }
+
+        lookup[sq] = attacks;
+    }
+
+    return lookup;
+}
+
+constexpr std::array<bitboard, 64> initBishopLookup() {
+    std::array<bitboard, 64> lookup{};
+
+    for (int sq=0; sq < 64; sq++) {
+        bitboard piece = 0ULL;
+        bitboard attacks = 0ULL;
+        
+        // up-right
+        piece = (1ULL << sq) & ~(FileH | Rank8);
+        while (piece) {
+            piece <<= 9;
+            piece &= ~(FileH | Rank8);
+            attacks |= piece;
+        }
+        // up-left
+        piece = (1ULL << sq) & ~(FileA | Rank8);
+        while (piece) {
+            piece <<= 7;
+            piece &= ~(FileA | Rank8);
+            attacks |= piece;
+        }
+        // down-right
+        piece = (1ULL << sq) & ~(FileH | Rank1);
+        while (piece) {
+            piece >>= 7;
+            piece &= ~(FileH | Rank1);
+            attacks |= piece;
+        }
+        // down-left
+        piece = (1ULL << sq) & ~(FileA | Rank1);
+        while (piece) {
+            piece >>= 9;
+            piece &= ~(FileA | Rank1);
+            attacks |= piece;
+        }
+
+        lookup[sq] = attacks;
+    }
+
+    return lookup;
+}
+
+constexpr std::array<bitboard, 64> kingLookup = initKingLookup();
+constexpr std::array<bitboard, 64> knightLookup = initKnightLookup();
+constexpr std::array<bitboard, 64> rookLookup = initRookLookup();
+constexpr std::array<bitboard, 64> bishopLookup = initBishopLookup();
+
 
 extern bitboard rookMagic[64][4096];
 extern bitboard bishopMagic[64][512];
