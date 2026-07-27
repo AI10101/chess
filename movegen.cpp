@@ -1,44 +1,9 @@
 #include "movegen.h"
 #include "board.h"
-#include "utility.h"
 
 #include <cstdint>
 #include <immintrin.h>
 
-
-void addMoves(std::vector<move>& moves, bitboard moveMask, int offset, uint16_t flags = 0b0000) {
-    while (moveMask) {
-        int sq = popLSB(moveMask);
-        moves.push_back((flags << 12) | (sq << 6) | (sq + offset));
-    }
-}
-
-void addMovesFromAttackMask(std::vector<move>& moves, bitboard moveMask, int initialSq, uint16_t flags = 0b0000) {
-    while (moveMask) {
-        int sq = popLSB(moveMask);
-        moves.push_back((flags << 12) | (sq << 6) | initialSq);
-    }
-}
-
-void addPushPromotions(std::vector<move>& moves, bitboard moveMask, int offset) {
-    while (moveMask) {
-        int sq = popLSB(moveMask);
-        moves.push_back((0b1000 << 12) | (sq << 6) | (sq + offset));
-        moves.push_back((0b1001 << 12) | (sq << 6) | (sq + offset));
-        moves.push_back((0b1010 << 12) | (sq << 6) | (sq + offset));
-        moves.push_back((0b1011 << 12) | (sq << 6) | (sq + offset));
-    }
-}
-
-void addCapturePromotions(std::vector<move>& moves, bitboard moveMask, int offset) {
-    while (moveMask) {
-        int sq = popLSB(moveMask);
-        moves.push_back((0b1100 << 12) | (sq << 6) | (sq + offset));
-        moves.push_back((0b1101 << 12) | (sq << 6) | (sq + offset));
-        moves.push_back((0b1110 << 12) | (sq << 6) | (sq + offset));
-        moves.push_back((0b1111 << 12) | (sq << 6) | (sq + offset));
-    }
-}
 
 std::vector<move> moveGen(Board& board) {
     std::vector<move> moves;
@@ -124,36 +89,40 @@ std::vector<move> moveGen(Board& board) {
     if (board.whiteToMove) {
         if (board.cK) {
             if ((board.empty & 0x60) == 0x60) {
-                uint64_t danger = getDangerSquares(board);
-                if ((danger & 0x70) == 0) {
+                board.whiteToMove = !board.whiteToMove;
+                if (isKingSafe(board, 4) && isKingSafe(board, 5) && isKingSafe(board, 6)) {
                     moves.push_back((0b10 << 12) | (6 << 6) | 4);
                 }
+                board.whiteToMove = !board.whiteToMove;
             }
         }
         if (board.cQ) {
             if ((board.empty & 0xe) == 0xe) {
-                uint64_t danger = getDangerSquares(board);
-                if ((danger & 0x1c) == 0) {
+                board.whiteToMove = !board.whiteToMove;
+                if (isKingSafe(board, 4) && isKingSafe(board, 3) && isKingSafe(board, 2)) {
                     moves.push_back((0b11 << 12) | (2 << 6) | 4);
                 }
+                board.whiteToMove = !board.whiteToMove;
             }
         }
     }
     else {
         if (board.ck) {
             if ((board.empty & 0x6000000000000000ULL) == 0x6000000000000000ULL) {
-                uint64_t danger = getDangerSquares(board);
-                if ((danger & 0x7000000000000000ULL) == 0) {
+                board.whiteToMove = !board.whiteToMove;
+                if (isKingSafe(board, 60) && isKingSafe(board, 61) && isKingSafe(board, 62)) {
                     moves.push_back((0b10 << 12) | (62 << 6) | 60);
                 }
+                board.whiteToMove = !board.whiteToMove;
             }
         }
         if (board.cq) {
             if ((board.empty & 0xe00000000000000ULL) == 0xe00000000000000ULL) {
-                uint64_t danger = getDangerSquares(board);
-                if ((danger & 0x1c00000000000000) == 0) {
+                board.whiteToMove = !board.whiteToMove;
+                if (isKingSafe(board, 60) && isKingSafe(board, 59) && isKingSafe(board, 58)) {
                     moves.push_back((0b11 << 12) | (58 << 6) | 60);
                 }
+                board.whiteToMove = !board.whiteToMove;
             }
         }
     }

@@ -20,43 +20,18 @@ uint64_t perft(Board& board, int depth) {
         Board next = board;
         makeMove(m, next);
 
-        if (isKingSafe(next)) {
+        int us = next.whiteToMove;
+        int them = us ^ 1;
+
+        int enemyKingSq = __builtin_ctzll(next.pieces[them*6]);
+
+        if (isKingSafe(next, enemyKingSq)) {
             nodes += perft(next, depth - 1);
         }
     }
 
     return nodes;
 }
-
-// std::string squareToString(int sq) {
-//     return std::string(1, 'a' + (sq % 8)) + char('1' + (sq / 8));
-// }
-
-// std::string moveToString(move m) {
-//     int from = m & 0b111111;
-//     int to = (m >> 6) & 0b111111;
-
-//     return squareToString(from) + squareToString(to);
-// }
-
-// uint64_t perftDivide(Board& board, int depth) {
-//     uint64_t nodes = 0;
-
-//     std::vector<move> moves;
-//     legalMoveGen(board, moves);
-
-//     for (move m : moves) {
-//         Board next = board;
-//         makeMove(m, next);
-
-//         uint64_t current_nodes = perft(next, depth - 1);
-//         nodes += current_nodes;
-
-//         std::cout << moveToString(m) << ": " << current_nodes << "\n";
-//     }
-
-//     return nodes;
-// }
 
 
 void perftTestPosition(std::string name, std::string fen, uint64_t goal, int depth) {

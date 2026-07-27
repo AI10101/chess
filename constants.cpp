@@ -54,7 +54,7 @@ void getRookMagic() {
             rookMagic[sq][pieces] = attacks;
         }
     }
-};
+}
 
 void getBishopMagic() {
     for (int sq=0; sq < 64; sq++) {
@@ -103,4 +103,4 @@ void getBishopMagic() {
             bishopMagic[sq][pieces] = attacks;
         }
     }
-};
+}

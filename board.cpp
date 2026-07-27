@@ -1,16 +1,9 @@
 #include "board.h"
 #include "constants.h"
-#include "utility.h"
 
 #include <sstream>
 #include <immintrin.h>
 
-
-void getExtras(Board& board) {
-    board.colour[0] = board.pieces[6] | board.pieces[7] | board.pieces[8] | board.pieces[9] | board.pieces[10] | board.pieces[11];
-    board.colour[1] = board.pieces[0] | board.pieces[1] | board.pieces[2] | board.pieces[3] | board.pieces[4] | board.pieces[5];
-    board.empty = ~(board.colour[0] | board.colour[1]);
-}
 
 void loadFEN(const std::string& s, Board& board) {
     std::stringstream fen(s);
@@ -18,7 +11,7 @@ void loadFEN(const std::string& s, Board& board) {
     board.pieces[6] = board.pieces[7] = board.pieces[8] = board.pieces[9] = board.pieces[10] = board.pieces[11] = 0ULL;
     board.pieces[0] = board.pieces[1] = board.pieces[2] = board.pieces[3] = board.pieces[4] = board.pieces[5] = 0ULL;
 
-    std::fill(std::begin(board.board), std::end(board.board), ' ');
+    std::fill(std::begin(board.board), std::end(board.board), 12);
 
     std::string placement; fen >> placement;
     int rank = 7, file = 0;
@@ -31,22 +24,21 @@ void loadFEN(const std::string& s, Board& board) {
         }
         else {
             int sq = rank * 8 + file;
-            board.board[sq] = c;
             file++;
             switch(c) {
-                case 'K': board.pieces[6] |= 1ULL << sq; break;
-                case 'Q': board.pieces[7] |= 1ULL << sq; break;
-                case 'B': board.pieces[8] |= 1ULL << sq; break;
-                case 'N': board.pieces[9] |= 1ULL << sq; break;
-                case 'R': board.pieces[10] |= 1ULL << sq; break;
-                case 'P': board.pieces[11] |= 1ULL << sq; break;
+                case 'K': board.pieces[6] |= 1ULL << sq; board.board[sq] = 6; break;
+                case 'Q': board.pieces[7] |= 1ULL << sq; board.board[sq] = 7; break;
+                case 'B': board.pieces[8] |= 1ULL << sq; board.board[sq] = 8; break;
+                case 'N': board.pieces[9] |= 1ULL << sq; board.board[sq] = 9; break;
+                case 'R': board.pieces[10] |= 1ULL << sq; board.board[sq] = 10; break;
+                case 'P': board.pieces[11] |= 1ULL << sq; board.board[sq] = 11; break;
 
-                case 'k': board.pieces[0] |= 1ULL << sq; break;
-                case 'q': board.pieces[1] |= 1ULL << sq; break;
-                case 'b': board.pieces[2] |= 1ULL << sq; break;
-                case 'n': board.pieces[3] |= 1ULL << sq; break;
-                case 'r': board.pieces[4] |= 1ULL << sq; break;
-                case 'p': board.pieces[5] |= 1ULL << sq; break;
+                case 'k': board.pieces[0] |= 1ULL << sq; board.board[sq] = 0; break;
+                case 'q': board.pieces[1] |= 1ULL << sq; board.board[sq] = 1; break;
+                case 'b': board.pieces[2] |= 1ULL << sq; board.board[sq] = 2; break;
+                case 'n': board.pieces[3] |= 1ULL << sq; board.board[sq] = 3; break;
+                case 'r': board.pieces[4] |= 1ULL << sq; board.board[sq] = 4; break;
+                case 'p': board.pieces[5] |= 1ULL << sq; board.board[sq] = 5; break;
             }
         }
     }
@@ -83,232 +75,152 @@ void makeMove(const uint16_t& move, Board& board) {
     uint64_t fromMask = 1ULL << from;
     uint64_t toMask = 1ULL << to;
 
+    int us = board.whiteToMove;
+
     board.halfmoves++;
     if (!board.whiteToMove) board.fullmoves++;
 
-    if (flags == 1) { // double pawn push;
-        board.halfmoves = 0;
-        if (board.whiteToMove) {
-            board.pieces[11] &= ~fromMask; board.pieces[11] |= toMask;
-            board.board[from] = ' '; board.board[to] = 'P';
-            board.enPassantSquare = to - 8;
-        }
-        else {
-            board.pieces[5] &= ~fromMask; board.pieces[5] |= toMask;
-            board.board[from] = ' '; board.board[to] = 'p';
-            board.enPassantSquare = to + 8;
-        }
-        board.whiteToMove = !board.whiteToMove;
-        getExtras(board);
-        return;
-    }
     board.enPassantSquare = -1;
 
-    if (flags == 2) { // king castle
-        if (board.whiteToMove) {
-            board.board[4] = board.board[7] = ' ';
-            board.board[6] = 'K'; board.board[5] = 'R';
-            board.pieces[6] = 1ULL << 6; board.pieces[10] &= ~(1ULL << 7); board.pieces[10] |= 1ULL << 5;
-            board.cK = board.cQ = false;
-        }
-        else {
-            board.board[60] = board.board[63] = ' ';
-            board.board[62] = 'k'; board.board[61] = 'r';
-            board.pieces[0] = 1ULL << 62; board.pieces[4] &= ~(1ULL << 63); board.pieces[4] |= 1ULL << 61;
-            board.ck = board.cq = false;
-        }
-        board.whiteToMove = !board.whiteToMove;
-        getExtras(board);
-        return;
-    }
-
-    if (flags == 3) { // queen castle
-        if (board.whiteToMove) {
-            board.board[4] = board.board[0] = ' ';
-            board.board[2] = 'K'; board.board[3] = 'R';
-            board.pieces[6] = 1ULL << 2; board.pieces[10] &= ~1ULL; board.pieces[10] |= 1ULL << 3;
-            board.cK = board.cQ = false;
-        }
-        else {
-            board.board[60] = board.board[56] = ' ';
-            board.board[58] = 'k'; board.board[59] = 'r';
-            board.pieces[0] = 1ULL << 58; board.pieces[4] &= ~(1ULL << 56); board.pieces[4] |= 1ULL << 59;
-            board.ck = board.cq = false;
-        }
-        board.whiteToMove = !board.whiteToMove;
-        getExtras(board);
-        return;
-    }
-
-    if (flags == 5) { // ep-capture
-        board.halfmoves = 0;
-        if (board.whiteToMove) {
-            board.pieces[11] &= ~fromMask; board.pieces[11] |= toMask;
-            board.board[from] = ' '; board.board[to] = 'P';
-            board.pieces[5] &= ~(1ULL << (to - 8)); board.board[to - 8] = ' ';
-        }
-        else {
-            board.pieces[5] &= ~fromMask; board.pieces[5] |= toMask;
-            board.board[from] = ' '; board.board[to] = 'p';
-            board.pieces[11] &= ~(1ULL << (to + 8)); board.board[to + 8] = ' ';
-        }
-        board.whiteToMove = !board.whiteToMove;
-        getExtras(board);
-        return;
-    }
-
-    if (flags & 0b100) { // capture
-        board.halfmoves = 0;
-        board.pieces[7] &= ~toMask; board.pieces[8] &= ~toMask; board.pieces[9] &= ~toMask; board.pieces[10] &= ~toMask; board.pieces[11] &= ~toMask;
-        board.pieces[1] &= ~toMask; board.pieces[2] &= ~toMask; board.pieces[3] &= ~toMask; board.pieces[4] &= ~toMask; board.pieces[5] &= ~toMask;
-        board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
-        board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
-    }
-
-    if (flags & 0b1000) { // promotion
-        board.halfmoves = 0;
-        if (board.whiteToMove) {
-            board.pieces[11] &= ~fromMask;
-            switch (flags & 0b11) {
-                case 0: board.pieces[9] |= toMask; board.board[to] = 'N'; break;
-                case 1: board.pieces[8] |= toMask; board.board[to] = 'B'; break;
-                case 2: board.pieces[10] |= toMask; board.board[to] = 'R'; break;
-                case 3: board.pieces[7] |= toMask; board.board[to] = 'Q'; break;
+    switch (flags) {
+        case 0:
+            board.pieces[board.board[from]] ^= fromMask | toMask;
+            board.board[to] = board.board[from]; board.board[from] = 12;
+            if (board.board[to] == 0) board.ck = board.cq = false;
+            if (board.board[to] == 6) board.cK = board.cQ = false;
+            if (board.board[to] == 5 || board.board[to] == 11) board.halfmoves = 0;
+            board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
+            board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
+            break;
+        case 1:
+            board.halfmoves = 0;
+            board.pieces[6*us + 5] ^= fromMask | toMask;
+            board.board[to] = board.board[from]; board.board[from] = 12;
+            board.enPassantSquare = (from + to) / 2;
+            break;
+        case 2:
+            if (board.whiteToMove) {
+                board.board[4] = board.board[7] = 12;
+                board.board[6] = 6; board.board[5] = 10;
+                board.pieces[6] = 1ULL << 6; board.pieces[10] &= ~(1ULL << 7); board.pieces[10] |= 1ULL << 5;
+                board.cK = board.cQ = false;
             }
-        }
-        else {
-            board.pieces[5] &= ~fromMask;
-            switch (flags & 0b11) {
-                case 0: board.pieces[3] |= toMask; board.board[to] = 'n'; break;
-                case 1: board.pieces[2] |= toMask; board.board[to] = 'b'; break;
-                case 2: board.pieces[4] |= toMask; board.board[to] = 'r'; break;
-                case 3: board.pieces[1] |= toMask; board.board[to] = 'q'; break;
+            else {
+                board.board[60] = board.board[63] = 12;
+                board.board[62] = 0; board.board[61] = 4;
+                board.pieces[0] = 1ULL << 62; board.pieces[4] &= ~(1ULL << 63); board.pieces[4] |= 1ULL << 61;
+                board.ck = board.cq = false;
             }
-        }
-        board.board[from] = ' ';
-        board.whiteToMove = !board.whiteToMove;
-        getExtras(board);
-        return;
+            break;
+        case 3:
+            if (board.whiteToMove) {
+                board.board[4] = board.board[0] = 12;
+                board.board[2] = 6; board.board[3] = 10;
+                board.pieces[6] = 1ULL << 2; board.pieces[10] &= ~1ULL; board.pieces[10] |= 1ULL << 3;
+                board.cK = board.cQ = false;
+            }
+            else {
+                board.board[60] = board.board[56] = 12;
+                board.board[58] = 0; board.board[59] = 4;
+                board.pieces[0] = 1ULL << 58; board.pieces[4] &= ~(1ULL << 56); board.pieces[4] |= 1ULL << 59;
+                board.ck = board.cq = false;
+            }
+            break;
+        case 4:
+            board.pieces[board.board[from]] ^= fromMask | toMask;
+            board.pieces[board.board[to]] ^= toMask;
+            board.board[to] = board.board[from]; board.board[from] = 12;
+            if (board.board[to] == 0) board.ck = board.cq = false;
+            if (board.board[to] == 6) board.cK = board.cQ = false;
+            if (board.board[to] == 5 || board.board[to] == 11) board.halfmoves = 0;
+            board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
+            board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
+            break;
+        case 5:
+            board.halfmoves = 0;
+            if (board.whiteToMove) {
+                board.pieces[11] &= ~fromMask; board.pieces[11] |= toMask;
+                board.board[from] = 12; board.board[to] = 11;
+                board.pieces[5] &= ~(1ULL << (to - 8)); board.board[to - 8] = 12;
+            }
+            else {
+                board.pieces[5] &= ~fromMask; board.pieces[5] |= toMask;
+                board.board[from] = 12; board.board[to] = 5;
+                board.pieces[11] &= ~(1ULL << (to + 8)); board.board[to + 8] = 12;
+            }
+            break;
+        default:
+            board.halfmoves = 0;
+            if (flags & 0b100) {
+                board.pieces[board.board[to]] ^= toMask;
+                board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
+                board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
+            }
+            if (board.whiteToMove) {
+                board.pieces[11] &= ~fromMask;
+                switch (flags & 0b11) {
+                    case 0: board.pieces[9] |= toMask; board.board[to] = 9; break;
+                    case 1: board.pieces[8] |= toMask; board.board[to] = 8; break;
+                    case 2: board.pieces[10] |= toMask; board.board[to] = 10; break;
+                    case 3: board.pieces[7] |= toMask; board.board[to] = 7; break;
+                }
+            }
+            else {
+                board.pieces[5] &= ~fromMask;
+                switch (flags & 0b11) {
+                    case 0: board.pieces[3] |= toMask; board.board[to] = 3; break;
+                    case 1: board.pieces[2] |= toMask; board.board[to] = 2; break;
+                    case 2: board.pieces[4] |= toMask; board.board[to] = 4; break;
+                    case 3: board.pieces[1] |= toMask; board.board[to] = 1; break;
+                }
+            }
+            board.board[from] = 12;
+            break;
     }
-
-    char piece = board.board[from];
-    board.board[from] = ' '; board.board[to] = piece;
-    switch (piece) {
-        case 'K': board.pieces[6] &= ~fromMask; board.pieces[6] |= toMask; board.cK = board.cQ = false; break;
-        case 'Q': board.pieces[7] &= ~fromMask; board.pieces[7] |= toMask; break;
-        case 'B': board.pieces[8] &= ~fromMask; board.pieces[8] |= toMask; break;
-        case 'N': board.pieces[9] &= ~fromMask; board.pieces[9] |= toMask; break;
-        case 'R': board.pieces[10] &= ~fromMask; board.pieces[10] |= toMask; break;
-        case 'P': board.pieces[11] &= ~fromMask; board.pieces[11] |= toMask; board.halfmoves = 0; break;
-
-        case 'k': board.pieces[0] &= ~fromMask; board.pieces[0] |= toMask; board.ck = board.cq = false; break;
-        case 'q': board.pieces[1] &= ~fromMask; board.pieces[1] |= toMask; break;
-        case 'b': board.pieces[2] &= ~fromMask; board.pieces[2] |= toMask; break;
-        case 'n': board.pieces[3] &= ~fromMask; board.pieces[3] |= toMask; break;
-        case 'r': board.pieces[4] &= ~fromMask; board.pieces[4] |= toMask; break;
-        case 'p': board.pieces[5] &= ~fromMask; board.pieces[5] |= toMask; board.halfmoves = 0; break;
-    }
-    board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
-    board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
 
     board.whiteToMove = !board.whiteToMove;
     getExtras(board);
 }
 
-bool isKingSafe(Board& board) {
+bool isKingSafe(const Board& board, const int sq) {
     int us = board.whiteToMove;
     int them = us ^ 1;
-
-    int enemyKingSq = __builtin_ctzll(board.pieces[them*6]);
 
     bitboard danger = 0ULL;
 
     bitboard mask, pieces;
 
     // king
-    danger |= kingLookup[enemyKingSq] & board.pieces[us*6];
+    danger |= kingLookup[sq] & board.pieces[us*6];
 
     // knight
-    danger |= knightLookup[enemyKingSq] & board.pieces[us*6 + 3];
+    danger |= knightLookup[sq] & board.pieces[us*6 + 3];
 
     // rook + queen
-    mask = rookLookup[enemyKingSq];
+    mask = rookLookup[sq];
     pieces = _pext_u64(~board.empty, mask);
-    danger |= rookMagic[enemyKingSq][pieces] & (board.pieces[us*6 + 4] | board.pieces[us*6 + 1]);
+    danger |= rookMagic[sq][pieces] & (board.pieces[us*6 + 4] | board.pieces[us*6 + 1]);
 
     // bishop + queen
-    mask = bishopLookup[enemyKingSq];
+    mask = bishopLookup[sq];
     pieces = _pext_u64(~board.empty, mask);
-    danger |= bishopMagic[enemyKingSq][pieces] & (board.pieces[us*6 + 2] | board.pieces[us*6 + 1]);
+    danger |= bishopMagic[sq][pieces] & (board.pieces[us*6 + 2] | board.pieces[us*6 + 1]);
+
+    mask = 1ULL << sq;
 
     // pawns
     if (board.whiteToMove) {
         // left capture
-        danger |= ((board.pieces[11] & ~FileA) << 7) & board.pieces[them*6];
+        danger |= ((board.pieces[11] & ~FileA) << 7) & mask;
         // right capture
-        danger |= ((board.pieces[11] & ~FileH) << 9) & board.pieces[them*6];
+        danger |= ((board.pieces[11] & ~FileH) << 9) & mask;
     }
     else {
         // left capture
-        danger |= ((board.pieces[5] & ~FileH) >> 7) & board.pieces[them*6];
+        danger |= ((board.pieces[5] & ~FileH) >> 7) & mask;
         // right capture
-        danger |= ((board.pieces[5] & ~FileA) >> 9) & board.pieces[them*6];
+        danger |= ((board.pieces[5] & ~FileA) >> 9) & mask;
     }
 
     return (danger == 0);
-}
-
-bitboard getDangerSquares(Board& board) {
-    uint64_t danger = 0ULL;
-    uint64_t moveMask = 0ULL;
-    int sq;
-    bitboard mask;
-    uint64_t pieces;
-    int us = board.whiteToMove;
-    int them = us ^ 1;
-
-    // king
-    danger |= kingLookup[__builtin_ctzll(board.pieces[them*6])];
-
-    // knight
-    moveMask = board.pieces[them*6 + 3];
-    while (moveMask) {
-        sq = popLSB(moveMask);
-        danger |= knightLookup[sq];
-    }
-
-    // rook + queen
-    moveMask = board.pieces[them*6 + 4] | board.pieces[them*6 + 1];
-    while (moveMask) {
-        sq = popLSB(moveMask);
-        mask = rookLookup[sq];
-        pieces = _pext_u64(~board.empty, mask);
-        danger |= rookMagic[sq][pieces];
-    }
-
-    // bishop + queen
-    moveMask = board.pieces[them*6 + 2] | board.pieces[them*6 + 1];
-    while (moveMask) {
-        sq = popLSB(moveMask);
-        mask = bishopLookup[sq];
-        pieces = _pext_u64(~board.empty, mask);
-        danger |= bishopMagic[sq][pieces];
-    }
-
-    if (board.whiteToMove) {
-        // pawns
-        // left capture
-        danger |= (board.pieces[5] & ~FileH) >> 7;
-        // right capture
-        danger |= (board.pieces[5] & ~FileA) >> 9;
-    }
-    else {
-        // pawns
-        // left capture
-        danger |= (board.pieces[11] & ~FileA) << 7;
-        // right capture
-        danger |= (board.pieces[11] & ~FileH) << 9;
-    }
-
-    return danger;
 }
