@@ -28,6 +28,6 @@ inline void getExtras(Board& board) {
 
 void loadFEN(const std::string& s, Board& board);
 
-void makeMove(const uint16_t& move, Board& board);
+void makeMove(const uint16_t move, Board& board);
 
 bool isKingSafe(const Board& board, const int sq);

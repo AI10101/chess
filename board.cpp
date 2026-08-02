@@ -67,7 +67,36 @@ void loadFEN(const std::string& s, Board& board) {
     getExtras(board);
 }
 
-void makeMove(const uint16_t& move, Board& board) {
+inline void quiet(Board& board, int from, int to, bitboard fromMask, bitboard toMask) {
+    board.pieces[board.board[from]] ^= fromMask | toMask; // update bitboard
+    board.board[to] = board.board[from]; board.board[from] = 12; // update board
+    // update halfmove clock
+    if (board.board[to] == 5 || board.board[to] == 11) board.halfmoves = 0;
+    else board.halfmoves++;
+    // update castling rights
+    switch (board.board[to]) {
+        case 0: board.ck = board.cq = false; break;
+        case 6: board.cK = board.cQ = false; break;
+        case 10: board.cK &= board.pieces[10] >> 7; board.cQ &= board.pieces[10]; break;
+        case 4: board.ck &= board.pieces[4] >> 63; board.cq &= board.pieces[4] >> 56; break;
+    }
+}
+
+inline void capture(Board& board, int from, int to, bitboard fromMask, bitboard toMask) {
+    board.halfmoves = 0;
+    board.pieces[board.board[from]] ^= fromMask | toMask; // update attacker bitboard
+    board.pieces[board.board[to]] ^= toMask; // update captured bitboard
+    board.board[to] = board.board[from]; board.board[from] = 12; // update board
+    switch (board.board[to]) {
+        // update castling rights
+        case 0: board.ck = board.cq = false; break;
+        case 6: board.cK = board.cQ = false; break;
+    }
+    board.cK &= board.pieces[10] >> 7; board.cQ &= board.pieces[10] & 1ULL;
+    board.ck &= board.pieces[4] >> 63; board.cq &= board.pieces[4] >> 56;
+}
+
+void makeMove(const uint16_t move, Board& board) {
     int from = move & 0b111111;
     int to = (move >> 6) & 0b111111;
     int flags = (move >> 12) & 0b1111;
@@ -75,86 +104,67 @@ void makeMove(const uint16_t& move, Board& board) {
     uint64_t fromMask = 1ULL << from;
     uint64_t toMask = 1ULL << to;
 
-    int us = board.whiteToMove;
-
-    board.halfmoves++;
-    if (!board.whiteToMove) board.fullmoves++;
-
     board.enPassantSquare = -1;
 
     switch (flags) {
-        case 0:
-            board.pieces[board.board[from]] ^= fromMask | toMask;
-            board.board[to] = board.board[from]; board.board[from] = 12;
-            if (board.board[to] == 0) board.ck = board.cq = false;
-            if (board.board[to] == 6) board.cK = board.cQ = false;
-            if (board.board[to] == 5 || board.board[to] == 11) board.halfmoves = 0;
-            board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
-            board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
+        case 0: // quiet
+            quiet(board, from, to, fromMask, toMask);
             break;
-        case 1:
+        case 4: // captures
+            capture(board, from, to, fromMask, toMask);
+            break;
+        case 1: // double pawn push
             board.halfmoves = 0;
-            board.pieces[6*us + 5] ^= fromMask | toMask;
-            board.board[to] = board.board[from]; board.board[from] = 12;
-            board.enPassantSquare = (from + to) / 2;
+            board.pieces[board.board[from]] ^= fromMask | toMask; // update bitboard
+            board.board[to] = board.board[from]; board.board[from] = 12; // update board
+            board.enPassantSquare = (from + to) / 2; // store ep square
             break;
-        case 2:
-            if (board.whiteToMove) {
-                board.board[4] = board.board[7] = 12;
-                board.board[6] = 6; board.board[5] = 10;
-                board.pieces[6] = 1ULL << 6; board.pieces[10] &= ~(1ULL << 7); board.pieces[10] |= 1ULL << 5;
-                board.cK = board.cQ = false;
-            }
-            else {
-                board.board[60] = board.board[63] = 12;
-                board.board[62] = 0; board.board[61] = 4;
-                board.pieces[0] = 1ULL << 62; board.pieces[4] &= ~(1ULL << 63); board.pieces[4] |= 1ULL << 61;
-                board.ck = board.cq = false;
-            }
+        case 2: // king castle
+            board.halfmoves++;
+            // update bitboards
+            board.pieces[board.board[from]] = toMask;
+            board.pieces[board.board[from+3]] ^= (toMask >> 1) | (toMask << 1);
+            // update board
+            board.board[to] = board.board[from];
+            board.board[from+1] = board.board[from+3];
+            board.board[from] = board.board[from+3] = 12;
+            // update castling rights
+            if (board.whiteToMove) board.cK = board.cQ = false;
+            else board.ck = board.cq = false;
             break;
-        case 3:
-            if (board.whiteToMove) {
-                board.board[4] = board.board[0] = 12;
-                board.board[2] = 6; board.board[3] = 10;
-                board.pieces[6] = 1ULL << 2; board.pieces[10] &= ~1ULL; board.pieces[10] |= 1ULL << 3;
-                board.cK = board.cQ = false;
-            }
-            else {
-                board.board[60] = board.board[56] = 12;
-                board.board[58] = 0; board.board[59] = 4;
-                board.pieces[0] = 1ULL << 58; board.pieces[4] &= ~(1ULL << 56); board.pieces[4] |= 1ULL << 59;
-                board.ck = board.cq = false;
-            }
+        case 3: // queen castle
+            board.halfmoves++;
+            // update bitboards
+            board.pieces[board.board[from]] = toMask;
+            board.pieces[board.board[from-4]] ^= (toMask >> 2) | (toMask << 1);
+            // update board
+            board.board[to] = board.board[from];
+            board.board[from-1] = board.board[from-4];
+            board.board[from] = board.board[from-4] = 12;
+            // update castling rights
+            if (board.whiteToMove) board.cK = board.cQ = false;
+            else board.ck = board.cq = false;
             break;
-        case 4:
-            board.pieces[board.board[from]] ^= fromMask | toMask;
-            board.pieces[board.board[to]] ^= toMask;
-            board.board[to] = board.board[from]; board.board[from] = 12;
-            if (board.board[to] == 0) board.ck = board.cq = false;
-            if (board.board[to] == 6) board.cK = board.cQ = false;
-            if (board.board[to] == 5 || board.board[to] == 11) board.halfmoves = 0;
-            board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
-            board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
-            break;
-        case 5:
+        case 5: // ep-capture
             board.halfmoves = 0;
+            board.pieces[board.board[from]] ^= fromMask | toMask; // update pawn bitboard
+            board.board[to] = board.board[from]; board.board[from] = 12; // update board
+            board.board[to - 8] = 12;
             if (board.whiteToMove) {
-                board.pieces[11] &= ~fromMask; board.pieces[11] |= toMask;
-                board.board[from] = 12; board.board[to] = 11;
                 board.pieces[5] &= ~(1ULL << (to - 8)); board.board[to - 8] = 12;
             }
             else {
-                board.pieces[5] &= ~fromMask; board.pieces[5] |= toMask;
-                board.board[from] = 12; board.board[to] = 5;
                 board.pieces[11] &= ~(1ULL << (to + 8)); board.board[to + 8] = 12;
             }
             break;
-        default:
+        default: // promotions
             board.halfmoves = 0;
             if (flags & 0b100) {
-                board.pieces[board.board[to]] ^= toMask;
-                board.cK &= (board.pieces[10] & (1ULL << 7)) >> 7; board.cQ &= board.pieces[10] & 1ULL;
-                board.ck &= (board.pieces[4] & (1ULL << 63)) >> 63; board.cq &= (board.pieces[4] & (1ULL << 56)) >> 56;
+                board.pieces[board.board[to]] &= ~toMask;
+                switch (board.board[to]) {
+                    case 10: board.cK &= board.pieces[10] >> 7; board.cQ &= board.pieces[10]; break;
+                    case 4: board.ck &= board.pieces[4] >> 63; board.cq &= board.pieces[4] >> 56; break;
+                }
             }
             if (board.whiteToMove) {
                 board.pieces[11] &= ~fromMask;
@@ -177,6 +187,8 @@ void makeMove(const uint16_t& move, Board& board) {
             board.board[from] = 12;
             break;
     }
+
+    if (!board.whiteToMove) board.fullmoves++;
 
     board.whiteToMove = !board.whiteToMove;
     getExtras(board);

@@ -4,7 +4,6 @@
 #include "movegen.h"
 
 #include <cstdint>
-#include <vector>
 #include <iostream>
 #include <chrono>
 
@@ -12,13 +11,14 @@
 uint64_t perft(Board& board, int depth) {
     if (depth == 0) return 1;
 
+    move moves[256];
+    int cnt = moveGen(board, moves);
+
     uint64_t nodes = 0;
 
-    std::vector<move> moves = moveGen(board);
-
-    for (move m : moves) {
+    for (int i=0; i<cnt; i++) {
         Board next = board;
-        makeMove(m, next);
+        makeMove(moves[i], next);
 
         int us = next.whiteToMove;
         int them = us ^ 1;
