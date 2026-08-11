@@ -2,27 +2,35 @@
 
 #include "constants.h"
 
-#include "string"
+#include <string>
+
+
+enum Piece {
+    N, B, R, Q, K, P,
+    n, b, r, q, k, p
+};
+enum Occupancy {
+    white, black, both
+};
 
 
 class Board {
   public:
     uint8_t board[64];
-    bool whiteToMove;
-    bool cK, cQ, ck, cq; // castling
+    bool sideToMove;
+    uint8_t castling; // cK, cQ, ck, cq;
     int enPassantSquare;
     int halfmoves, fullmoves;
 
-    bitboard pieces[12]; // k, q, b, n, r, p, K, Q, B, N, R, P
-    bitboard colour[2]; // white, black
-    bitboard empty;
+    bitboard pieces[12]; // N, B, R, Q, K, P, n, b, r, q, k, p
+    bitboard occupancies[3]; // white, black, both
 };
 
 
 inline void getExtras(Board& board) {
-    board.colour[0] = board.pieces[6] | board.pieces[7] | board.pieces[8] | board.pieces[9] | board.pieces[10] | board.pieces[11];
-    board.colour[1] = board.pieces[0] | board.pieces[1] | board.pieces[2] | board.pieces[3] | board.pieces[4] | board.pieces[5];
-    board.empty = ~(board.colour[0] | board.colour[1]);
+    board.occupancies[white] = board.pieces[N] | board.pieces[B] | board.pieces[R] | board.pieces[Q] | board.pieces[K] | board.pieces[P];
+    board.occupancies[black] = board.pieces[n] | board.pieces[b] | board.pieces[r] | board.pieces[q] | board.pieces[k] | board.pieces[p];
+    board.occupancies[both] = board.occupancies[white] | board.occupancies[black];
 }
 
 

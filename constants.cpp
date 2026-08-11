@@ -1,6 +1,5 @@
 #include "constants.h"
 
-#include <cstdint>
 #include <immintrin.h>
 
 
@@ -13,7 +12,7 @@ void getRookMagic() {
 
         bitboard rookMovementMask = rookLookup[sq];
 
-        for (uint64_t pieces = 0; pieces < (1ULL << __builtin_popcountll(rookMovementMask)); pieces++) {
+        for (bitboard pieces = 0; pieces < (1ULL << __builtin_popcountll(rookMovementMask)); pieces++) {
             bitboard board = _pdep_u64(pieces, rookMovementMask);
 
             bitboard attacks = 0ULL;
@@ -62,7 +61,7 @@ void getBishopMagic() {
 
         bitboard bishopMovementMask = bishopLookup[sq];
 
-        for (uint64_t pieces = 0; pieces < (1ULL << __builtin_popcountll(bishopMovementMask)); pieces++) {
+        for (bitboard pieces = 0; pieces < (1ULL << __builtin_popcountll(bishopMovementMask)); pieces++) {
             bitboard board = _pdep_u64(pieces, bishopMovementMask);
 
             bitboard attacks = 0ULL;

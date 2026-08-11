@@ -20,14 +20,44 @@ uint64_t perft(Board& board, int depth) {
         Board next = board;
         makeMove(moves[i], next);
 
-        int us = next.whiteToMove;
+        int us = next.sideToMove;
         int them = us ^ 1;
 
-        int enemyKingSq = __builtin_ctzll(next.pieces[them*6]);
+        int enemyKingSq = __builtin_ctzll(next.pieces[them*6 + K]);
 
         if (isKingSafe(next, enemyKingSq)) {
             nodes += perft(next, depth - 1);
         }
+    }
+
+    return nodes;
+}
+
+std::string squareToString(int sq) {
+    return std::string(1, 'a' + (sq % 8)) + char('1' + (sq / 8));
+}
+
+std::string moveToString(move m) {
+    int from = m & 0b111111;
+    int to = (m >> 6) & 0b111111;
+
+    return squareToString(from) + squareToString(to);
+}
+
+uint64_t perftDivide(Board& board, int depth) {
+    uint64_t nodes = 0;
+
+    move moves[256];
+    int cnt = moveGen(board, moves);
+
+    for (int i=0; i<cnt; i++) {
+        Board next = board;
+        makeMove(moves[i], next);
+
+        uint64_t current_nodes = perft(next, depth - 1);
+        nodes += current_nodes;
+
+        std::cout << moveToString(moves[i]) << ": " << current_nodes << "\n";
     }
 
     return nodes;

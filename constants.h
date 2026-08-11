@@ -1,22 +1,44 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <iterator>
 
 
 using bitboard = uint64_t;
 using move = uint16_t;
 
 
-constexpr bitboard Rank1 = 0xff;
-constexpr bitboard Rank2 = 0xff00;
-constexpr bitboard Rank7 = 0xff000000000000;
-constexpr bitboard Rank8 = 0xff00000000000000;
+const bitboard Rank1 = 0xff;
+const bitboard Rank2 = 0xff00;
+const bitboard Rank7 = 0xff000000000000;
+const bitboard Rank8 = 0xff00000000000000;
 
-constexpr bitboard FileA = 0x101010101010101;
-constexpr bitboard FileB = 0x202020202020202;
-constexpr bitboard FileG = 0x4040404040404040;
-constexpr bitboard FileH = 0x8080808080808080;
+const bitboard FileA = 0x101010101010101;
+const bitboard FileB = 0x202020202020202;
+const bitboard FileG = 0x4040404040404040;
+const bitboard FileH = 0x8080808080808080;
+
+
+constexpr std::array<uint8_t, 64> initCastlingUpdateLookup() {
+    std::array<uint8_t, 64> lookup{};
+
+    // in most cases moving or capturing the piece does not affect castling rights
+    for (int sq=0; sq<64; sq++) lookup[sq] = 0b1111;
+
+    // cK, cQ, ck, cq;
+    lookup[4]  = 0b0011; // moving white king
+    lookup[60] = 0b1100; // moving black king
+    lookup[0]  = 0b1011; // moving or capturing white queen-side rook 
+    lookup[7]  = 0b0111; // moving or capturing white king-side rook
+    lookup[56] = 0b1110; // moving or capturing black queen-side rook
+    lookup[63] = 0b1101; // moving or capturing black king-side rook
+
+    return lookup;
+}
+
+constexpr std::array<uint8_t, 64> castlingUpdate = initCastlingUpdateLookup();
 
 
 constexpr std::array<bitboard, 64> initKingLookup() {
