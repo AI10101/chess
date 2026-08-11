@@ -16,22 +16,15 @@ enum Occupancy {
 
 class Board {
   public:
-    uint8_t board[64];
+    uint8_t board[64]; // not a source of truth - no empty squares handling
     bool sideToMove;
     uint8_t castling; // cK, cQ, ck, cq;
-    int enPassantSquare;
-    int halfmoves, fullmoves;
+    uint8_t enPassantSquare; // 0 if ep is not possible - ep can not happen on sq 0
+    uint16_t halfmoves, fullmoves;
 
     bitboard pieces[12]; // N, B, R, Q, K, P, n, b, r, q, k, p
     bitboard occupancies[3]; // white, black, both
 };
-
-
-inline void getExtras(Board& board) {
-    board.occupancies[white] = board.pieces[N] | board.pieces[B] | board.pieces[R] | board.pieces[Q] | board.pieces[K] | board.pieces[P];
-    board.occupancies[black] = board.pieces[n] | board.pieces[b] | board.pieces[r] | board.pieces[q] | board.pieces[k] | board.pieces[p];
-    board.occupancies[both] = board.occupancies[white] | board.occupancies[black];
-}
 
 
 void loadFEN(const std::string& s, Board& board);

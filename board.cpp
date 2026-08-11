@@ -42,7 +42,10 @@ void loadFEN(const std::string& s, Board& board) {
         }
     }
 
-    getExtras(board);
+    // construct occupancies
+    board.occupancies[white] = board.pieces[N] | board.pieces[B] | board.pieces[R] | board.pieces[Q] | board.pieces[K] | board.pieces[P];
+    board.occupancies[black] = board.pieces[n] | board.pieces[b] | board.pieces[r] | board.pieces[q] | board.pieces[k] | board.pieces[p];
+    board.occupancies[both] = board.occupancies[white] | board.occupancies[black];
 
     std::string movingSide; fen >> movingSide;
     board.sideToMove = (movingSide == "b"); // "b" = 1; "w" = 0
@@ -59,7 +62,7 @@ void loadFEN(const std::string& s, Board& board) {
     }
 
     std::string enPassant; fen >> enPassant;
-    board.enPassantSquare = (enPassant == "-") ? -1 : (enPassant[1] -'1') * 8 + (enPassant[0] - 'a');
+    board.enPassantSquare = (enPassant == "-") ? 0 : (enPassant[1] -'1') * 8 + (enPassant[0] - 'a');
 
     std::string movesCnt;
     fen >> movesCnt; board.halfmoves = stoi(movesCnt);
@@ -75,12 +78,16 @@ void makeMove(const uint16_t move, Board& board) {
     uint64_t fromMask = 1ULL << from;
     uint64_t toMask = 1ULL << to;
 
-    board.enPassantSquare = -1;
+    board.enPassantSquare = 0;
 
     switch (flags) {
         case 0: // quiet
             board.pieces[board.board[from]] ^= fromMask | toMask; // update bitboard
-            board.board[to] = board.board[from]; // update board
+            // update occupancy bitboards
+            board.occupancies[board.sideToMove] ^= fromMask | toMask;
+            board.occupancies[both] ^= fromMask | toMask;
+            // update board
+            board.board[to] = board.board[from];
             // update halfmove clock
             if (board.board[to] == p || board.board[to] == P) board.halfmoves = 0;
             else board.halfmoves++;
@@ -90,7 +97,11 @@ void makeMove(const uint16_t move, Board& board) {
         case 1: // double pawn push
             board.halfmoves = 0;
             board.pieces[board.board[from]] ^= fromMask | toMask; // update bitboard
-            board.board[to] = board.board[from]; // update board
+            // update occupancy bitboards
+            board.occupancies[board.sideToMove] ^= fromMask | toMask;
+            board.occupancies[both] ^= fromMask | toMask;
+            // update board
+            board.board[to] = board.board[from];
             board.enPassantSquare = (from + to) / 2; // store ep square
             break;
         case 2: // king castle
@@ -98,6 +109,9 @@ void makeMove(const uint16_t move, Board& board) {
             // update bitboards
             board.pieces[board.board[from]] = toMask; // king
             board.pieces[board.board[from+3]] ^= (toMask >> 1) | (toMask << 1); // rook
+            // update occupancy bitboards (king + rook)
+            board.occupancies[board.sideToMove] ^= fromMask | toMask | (toMask >> 1) | (toMask << 1);
+            board.occupancies[both] ^= fromMask | toMask | (toMask >> 1) | (toMask << 1);
             // update board
             board.board[to] = board.board[from]; // king
             board.board[from+1] = board.board[from+3]; // rook
@@ -109,6 +123,9 @@ void makeMove(const uint16_t move, Board& board) {
             // update bitboards
             board.pieces[board.board[from]] = toMask; // king
             board.pieces[board.board[from-4]] ^= (toMask >> 2) | (toMask << 1); // rook
+            // update occupancy bitboards (king + rook)
+            board.occupancies[board.sideToMove] ^= fromMask | toMask | (toMask >> 2) | (toMask << 1);
+            board.occupancies[both] ^= fromMask | toMask | (toMask >> 2) | (toMask << 1);
             // update board
             board.board[to] = board.board[from]; // king
             board.board[from-1] = board.board[from-4]; // rook
@@ -119,7 +136,12 @@ void makeMove(const uint16_t move, Board& board) {
             board.halfmoves = 0;
             board.pieces[board.board[from]] ^= fromMask | toMask; // update attacker bitboard
             board.pieces[board.board[to]] ^= toMask; // update captured bitboard
-            board.board[to] = board.board[from]; // update board
+            // update occupancy bitboards
+            board.occupancies[board.sideToMove] ^= fromMask | toMask; // us
+            board.occupancies[board.sideToMove^1] ^= toMask; // enemy
+            board.occupancies[both] ^= fromMask;
+            // update board
+            board.board[to] = board.board[from];
             // update castling rights
             board.castling &= castlingUpdate[from]; // rook or king can capture
             board.castling &= castlingUpdate[to]; // rook can be captured
@@ -131,14 +153,24 @@ void makeMove(const uint16_t move, Board& board) {
             // the if statement is unnecessary as to+8 and to-8 squares contain precisely one pawn - the captured one
             board.pieces[p] &= ~((toMask << 8) | (toMask >> 8));
             board.pieces[P] &= ~((toMask << 8) | (toMask >> 8));
+            // update occupancy bitboards
+            board.occupancies[board.sideToMove] ^= fromMask | toMask; // us
+            board.occupancies[board.sideToMove^1] &= ~((toMask << 8) | (toMask >> 8)); // enemy
+            board.occupancies[both] ^= fromMask | toMask;
+            board.occupancies[both] &= ~((toMask << 8) | (toMask >> 8));
             break;
         default: // promotions
             board.halfmoves = 0;
             if (flags & 0b100) { // capture
                 board.pieces[board.board[to]] &= ~toMask; // update captured bitboard
+                board.occupancies[board.sideToMove^1] ^= toMask; // update enemy occupancy bitboard
                 board.castling &= castlingUpdate[to]; // update castling rights (rook can be captured)
             }
             board.pieces[board.board[from]] ^= fromMask; // update pawn bitboard
+            // update occupancy bitboards
+            board.occupancies[board.sideToMove] ^= fromMask | toMask;
+            board.occupancies[both] ^= fromMask;
+            board.occupancies[both] |= toMask; // this bit can be set as we could have captured a piece 
             // place new piece
             board.board[to] = board.sideToMove *6 + (flags & 0b11); // flags contain info about promotion piece
             board.pieces[board.sideToMove *6 + (flags & 0b11)] ^= toMask;
@@ -148,8 +180,6 @@ void makeMove(const uint16_t move, Board& board) {
     if (board.sideToMove == black) board.fullmoves++;
 
     board.sideToMove ^= 1; // flip side to move
-
-    getExtras(board);
 }
 
 bool isKingSafe(const Board& board, const int sq) {

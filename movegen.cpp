@@ -26,12 +26,12 @@ int moveGen(Board& board, move* moves) {
         moveMask = ((board.pieces[P] & ~FileH) << 9) & board.occupancies[black] & ~Rank8;
         addMoves(moves, cnt, moveMask, -9, 0b0100);
         // ep left capture
-        if (board.enPassantSquare != -1) {
+        if (board.enPassantSquare != 0) {
             moveMask = ((board.pieces[P] & ~FileA) << 7) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, cnt, moveMask, -7, 0b0101);
         // ep right capture
-        if (board.enPassantSquare != -1) {
+        if (board.enPassantSquare != 0) {
             moveMask = ((board.pieces[P] & ~FileH) << 9) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, cnt, moveMask, -9, 0b0101);
@@ -59,12 +59,12 @@ int moveGen(Board& board, move* moves) {
         moveMask = ((board.pieces[p] & ~FileA) >> 9) & board.occupancies[white] & ~Rank1;
         addMoves(moves, cnt, moveMask, 9, 0b0100);
         // ep left capture
-        if (board.enPassantSquare != -1) {
+        if (board.enPassantSquare != 0) {
             moveMask = ((board.pieces[p] & ~FileH) >> 7) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, cnt, moveMask, 7, 0b0101);
         // ep right capture
-        if (board.enPassantSquare != -1) {
+        if (board.enPassantSquare != 0) {
             moveMask = ((board.pieces[p] & ~FileA) >> 9) & (1ULL << board.enPassantSquare);
         } else moveMask = 0;
         addMoves(moves, cnt, moveMask, 9, 0b0101);
