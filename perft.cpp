@@ -1,74 +1,18 @@
 #include "perft.h"
 
-#include "constants.h"
-#include "movegen.h"
-
 #include <cstdint>
 #include <iostream>
 #include <chrono>
 
 
-uint64_t perft(Board& board, int depth) {
-    if (depth == 0) return 1;
-
-    move moves[256];
-    int cnt = moveGen(board, moves);
-
-    uint64_t nodes = 0;
-
-    for (int i=0; i<cnt; i++) {
-        Board next = board;
-        makeMove(moves[i], next);
-
-        int us = next.sideToMove;
-        int them = us ^ 1;
-
-        int enemyKingSq = __builtin_ctzll(next.pieces[them*6 + K]);
-
-        if (isKingSafe(next, enemyKingSq)) {
-            nodes += perft(next, depth - 1);
-        }
-    }
-
-    return nodes;
-}
-
-std::string squareToString(int sq) {
-    return std::string(1, 'a' + (sq % 8)) + char('1' + (sq / 8));
-}
-
-std::string moveToString(move m) {
-    int from = m & 0b111111;
-    int to = (m >> 6) & 0b111111;
-
-    return squareToString(from) + squareToString(to);
-}
-
-uint64_t perftDivide(Board& board, int depth) {
-    uint64_t nodes = 0;
-
-    move moves[256];
-    int cnt = moveGen(board, moves);
-
-    for (int i=0; i<cnt; i++) {
-        Board next = board;
-        makeMove(moves[i], next);
-
-        uint64_t current_nodes = perft(next, depth - 1);
-        nodes += current_nodes;
-
-        std::cout << moveToString(moves[i]) << ": " << current_nodes << "\n";
-    }
-
-    return nodes;
-}
-
-
 void perftTestPosition(std::string name, std::string fen, uint64_t goal, int depth) {
     Board board;
-
     loadFEN(fen, board);
-    uint64_t nodes = perft(board, depth);
+
+    uint64_t nodes;
+    if (board.sideToMove) nodes = perft<true>(board, depth);
+    else nodes = perft<false>(board, depth);
+
     if (nodes == goal) {
         std::cout << "Position " << name << ": passed\n"; 
     }
@@ -90,7 +34,8 @@ void perftTimePosition(std::string name, std::string fen, int depth) {
         loadFEN(fen, board);
 
         auto start = std::chrono::high_resolution_clock::now();
-        nodes = perft(board, depth);
+        if (board.sideToMove) nodes = perft<true>(board, depth);
+        else nodes = perft<false>(board, depth);
         auto stop = std::chrono::high_resolution_clock::now();
 
         std::chrono::duration<double> elapsed = stop - start;
@@ -98,8 +43,8 @@ void perftTimePosition(std::string name, std::string fen, int depth) {
     }
 
     std::cout << name << " perft " << depth << "\n";
-    std::cout << "Time: " << totalTime / 5 << " s\n";
-    std::cout << "MNPS: " << nodes / (totalTime / 5) / 1e6 << "\n";
+    std::cout << "Time: " << totalTime / runs << " s\n";
+    std::cout << "MNPS: " << nodes / (totalTime / runs) / 1e6 << "\n";
 }
 
 
