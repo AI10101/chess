@@ -2,39 +2,14 @@
 #include "constants.h"
 #include "movegen.h"
 #include "perft.h"
+#include "search.h"
 
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <experimental/random>
 
 
-template<bool SideToMove>
-void returnRandomUCImove(Board& board) {
-    move moves[256];
-    int cnt = moveGen<SideToMove>(board, moves);
-
-    move legalMoves[256];
-    int legalCnt = 0;
-
-    for (int i=0; i<cnt; i++) {
-        Board next = board;
-        makeMove(moves[i], next);
-
-        int KingSq = __builtin_ctzll(next.pieces[SideToMove*6 + K]);
-
-        if (isSqSafe<SideToMove^1>(next, KingSq)) { // checks if move is legal (king can not be captured in the next move)
-            legalMoves[legalCnt++] = moves[i];
-        }
-    }
-
-    if (legalCnt == 0) {
-        std::cout << "bestmove 0000\n";
-        return;
-    }
-
-    move m = legalMoves[std::experimental::randint(0, legalCnt-1)];
-
+std::string moveToUCI(const move m) {
     int from = m & 0b111111;
     int to = (m >> 6) & 0b111111;
     int flags = (m >> 12) & 0b1111;
@@ -51,7 +26,7 @@ void returnRandomUCImove(Board& board) {
         uciMove += promotion[flags & 0b11];
     }
 
-    std::cout << "bestmove " << uciMove << "\n";
+    return uciMove;
 }
 
 
@@ -141,8 +116,10 @@ int main() {
             }
         }
         else if (cmd.rfind("go", 0) == 0) {
-            if (board.sideToMove) returnRandomUCImove<true>(board);
-            else returnRandomUCImove<false>(board);
+            move bestMove;
+            if (board.sideToMove) bestMove = findBestMove<true>(board, 5);
+            else bestMove = findBestMove<false>(board, 5);
+            std::cout << "bestmove " << moveToUCI(bestMove) << "\n";
         }
         else if (cmd.rfind("perft", 0) == 0) {
             std::istringstream iss(cmd);
@@ -153,8 +130,6 @@ int main() {
 
             if (board.sideToMove) perftDivide<true>(board, std::stoi(token));
             else perftDivide<false>(board, std::stoi(token));
-
-            std::cout << board.sideToMove << "\n";
         }
         else if (cmd == "test") {
             perftTest();

@@ -4,3 +4,5 @@ tempCodeRunnerFile.cpp
 gmon.out
 profile_data.txt
 versions/
+*.pgn
+*.sh
