@@ -71,6 +71,7 @@ int main() {
 
     getRookMagic();
     getBishopMagic();
+    getKeys();
 
     Board board;
 

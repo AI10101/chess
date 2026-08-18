@@ -4,6 +4,7 @@
 #include "board.h"
 #include "board.h"
 
+#include <cstdint>
 #include <immintrin.h>
 #include <vector>
 
@@ -15,42 +16,33 @@ inline int popLSB(bitboard& bb) {
 }
 
 
-template<int Offset, int Flags>
-inline void addPawnMoves(move* moves, int& cnt, bitboard moveMask) {
+template<int Offset>
+inline void addPawnMoves(move* moves, int& cnt, bitboard moveMask, const int flags = 0b0000) {
     while (moveMask) {
         int sq = popLSB(moveMask);
-        moves[cnt++] = ((Flags << 12) | (sq << 6) | (sq + Offset));
+        moves[cnt++] = ((flags << 12) | (sq << 6) | (sq + Offset));
     }
 }
+
 
 inline void addMovesFromAttackMask(move* moves, int& cnt, bitboard moveMask, const int initialSq, const int flags = 0b0000) {
+    uint16_t movePart = (flags << 12) | initialSq;
     while (moveMask) {
         int sq = popLSB(moveMask);
-        moves[cnt++] = ((flags << 12) | (sq << 6) | initialSq);
+        moves[cnt++] = movePart | (sq << 6);
     }
 }
 
 
-template<int Offset>
-inline void addPushPromotions(move* moves, int& cnt, bitboard moveMask) {
+template<int Offset, bool Capture>
+inline void addPromotions(move* moves, int& cnt, bitboard moveMask) {
+    uint16_t movePart = Capture ? (0b11 << 14) : (0b10 << 14);
     while (moveMask) {
         int sq = popLSB(moveMask);
-        moves[cnt++] = ((0b1000 << 12) | (sq << 6) | (sq + Offset));
-        moves[cnt++] = ((0b1001 << 12) | (sq << 6) | (sq + Offset));
-        moves[cnt++] = ((0b1010 << 12) | (sq << 6) | (sq + Offset));
-        moves[cnt++] = ((0b1011 << 12) | (sq << 6) | (sq + Offset));
-    }
-}
-
-
-template<int Offset>
-inline void addCapturePromotions(move* moves, int& cnt, bitboard moveMask) {
-    while (moveMask) {
-        int sq = popLSB(moveMask);
-        moves[cnt++] = ((0b1100 << 12) | (sq << 6) | (sq + Offset));
-        moves[cnt++] = ((0b1101 << 12) | (sq << 6) | (sq + Offset));
-        moves[cnt++] = ((0b1110 << 12) | (sq << 6) | (sq + Offset));
-        moves[cnt++] = ((0b1111 << 12) | (sq << 6) | (sq + Offset));
+        moves[cnt++] = movePart | (0b00 << 12) | (sq << 6) | (sq + Offset);
+        moves[cnt++] = movePart | (0b01 << 12) | (sq << 6) | (sq + Offset);
+        moves[cnt++] = movePart | (0b10 << 12) | (sq << 6) | (sq + Offset);
+        moves[cnt++] = movePart | (0b11 << 12) | (sq << 6) | (sq + Offset);
     }
 }
 
@@ -76,35 +68,22 @@ inline void pawnMoveGen(Board& board, move* moves, int& cnt, const bitboard empt
     const bitboard pawns = board.pieces[(SideToMove == white) ? P : p];
 
     // push
-    piecesToMove = pawnShift<SideToMove, 8>(pawns) & empty & ~promotionRank;
-    addPawnMoves<(SideToMove == white) ? -8 : 8, 0b0000>(moves, cnt, piecesToMove);
+    piecesToMove = pawnShift<SideToMove, 8>(pawns) & empty;
+    addPawnMoves<(SideToMove == white) ? -8 : 8>(moves, cnt, piecesToMove & ~promotionRank);
+    addPromotions<(SideToMove == white) ? -8 : 8, false>(moves, cnt, piecesToMove & promotionRank);
     // double push
     piecesToMove = pawnShift<SideToMove, 8>(pawnShift<SideToMove, 8>(pawns & startRank) & empty) & empty;
-    addPawnMoves<(SideToMove == white) ? -16 : 16, 0b0001>(moves, cnt, piecesToMove);
+    addPawnMoves<(SideToMove == white) ? -16 : 16>(moves, cnt, piecesToMove, 0b0001);
     // left capture
-    piecesToMove = pawnShift<SideToMove, 7>(pawns & ~leftMostFile) & enemy & ~promotionRank;
-    addPawnMoves<(SideToMove == white) ? -7 : 7, 0b0100>(moves, cnt, piecesToMove);
+    piecesToMove = pawnShift<SideToMove, 7>(pawns & ~leftMostFile);
+    addPawnMoves<(SideToMove == white) ? -7 : 7>(moves, cnt, piecesToMove & enemy & ~promotionRank, 0b0100);
+    addPromotions<(SideToMove == white) ? -7 : 7, true>(moves, cnt, piecesToMove & enemy & promotionRank); // promotion
+    addPawnMoves<(SideToMove == white) ? -7 : 7>(moves, cnt, piecesToMove & board.enPassant, 0b0101); // ep
     // right capture
-    piecesToMove = pawnShift<SideToMove, 9>(pawns & ~rightMostFile) & enemy & ~promotionRank;
-    addPawnMoves<(SideToMove == white) ? -9 : 9, 0b0100>(moves, cnt, piecesToMove);
-    // ep
-    if (board.enPassantSquare != 0) {
-        // left
-        piecesToMove = pawnShift<SideToMove, 7>(pawns & ~leftMostFile) & (1ULL << board.enPassantSquare);
-        addPawnMoves<(SideToMove == white) ? -7 : 7, 0b0101>(moves, cnt, piecesToMove);
-        // right
-        piecesToMove = pawnShift<SideToMove, 9>(pawns & ~rightMostFile) & (1ULL << board.enPassantSquare);
-        addPawnMoves<(SideToMove == white) ? -9 : 9, 0b0101>(moves, cnt, piecesToMove);
-    }
-    // pawn push promotion
-    piecesToMove = pawnShift<SideToMove, 8>(pawns) & empty & promotionRank;
-    addPushPromotions<(SideToMove == white) ? -8 : 8>(moves, cnt, piecesToMove);
-    // left capture promotion
-    piecesToMove = pawnShift<SideToMove, 7>(pawns & ~leftMostFile) & enemy & promotionRank;
-    addCapturePromotions<(SideToMove == white) ? -7 : 7>(moves, cnt, piecesToMove);
-    // right capture promotion
-    piecesToMove = pawnShift<SideToMove, 9>(pawns & ~rightMostFile) & enemy & promotionRank;
-    addCapturePromotions<(SideToMove == white) ? -9 : 9>(moves, cnt, piecesToMove);
+    piecesToMove = pawnShift<SideToMove, 9>(pawns & ~rightMostFile);
+    addPawnMoves<(SideToMove == white) ? -9 : 9>(moves, cnt, piecesToMove & enemy & ~promotionRank, 0b0100);
+    addPromotions<(SideToMove == white) ? -9 : 9, true>(moves, cnt, piecesToMove & enemy & promotionRank); // promotion
+    addPawnMoves<(SideToMove == white) ? -9 : 9>(moves, cnt, piecesToMove & board.enPassant, 0b0101); // ep
 }
 
 
@@ -172,10 +151,7 @@ int moveGen(Board& board, move* moves) {
     piecesToMove = board.pieces[SideToMove*6 + R] | board.pieces[SideToMove*6 + Q];
     while (piecesToMove) {
         sq = popLSB(piecesToMove);
-        // attacks is used counterintuitively to avoid declaration of new bitboards (better cache access)
-        attacks = rookLookup[sq]; // just a mask for extracting pieces blocking movement
-        attacks = _pext_u64(occupied, attacks); // extracted pieces blocking movement - index for magic lookup
-        attacks = rookMagic[sq][attacks];
+        attacks = rookMagic[sq][_pext_u64(occupied, rookLookup[sq])];
         addMovesFromAttackMask(moves, cnt, attacks & empty, sq); // quiet
         addMovesFromAttackMask(moves, cnt, attacks & enemy, sq, 0b0100); // captures
     }
@@ -184,10 +160,7 @@ int moveGen(Board& board, move* moves) {
     piecesToMove = board.pieces[SideToMove*6 + B] | board.pieces[SideToMove*6 + Q];
     while (piecesToMove) {
         sq = popLSB(piecesToMove);
-        // attacks is used counterintuitively to avoid declaration of new bitboards (better cache access)
-        attacks = bishopLookup[sq]; // just a mask for extracting pieces blocking movement
-        attacks = _pext_u64(occupied, attacks); // extracted pieces blocking movement - index for magic lookup
-        attacks = bishopMagic[sq][attacks];
+        attacks = bishopMagic[sq][_pext_u64(occupied, bishopLookup[sq])];
         addMovesFromAttackMask(moves, cnt, attacks & empty, sq); // quiet
         addMovesFromAttackMask(moves, cnt, attacks & enemy, sq, 0b0100); // captures
     }

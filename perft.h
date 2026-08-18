@@ -1,6 +1,7 @@
 #pragma once
 
 #include "board.h"
+#include "constants.h"
 #include "movegen.h"
 
 #include <iostream>
@@ -11,20 +12,20 @@ inline uint64_t perft(Board& board, int depth) {
     if (depth == 0) return 1;
 
     move moves[256];
-    int cnt;
-    cnt = moveGen<SideToMove>(board, moves);
+    int cnt = moveGen<SideToMove>(board, moves);
 
     uint64_t nodes = 0;
 
     for (int i=0; i<cnt; i++) {
-        Board next = board;
-        makeMove(moves[i], next);
+        makeMove(moves[i], board);
 
-        int KingSq = __builtin_ctzll(next.pieces[SideToMove*6 + K]);
+        int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
 
-        if (isSqSafe<SideToMove^1>(next, KingSq)) { // checks if move is legal (king can not be captured in the next move)
-            nodes += perft<SideToMove^1>(next, depth - 1);
+        if (isSqSafe<SideToMove^1>(board, KingSq)) { // checks if move is legal (king can not be captured in the next move)
+            nodes += perft<SideToMove^1>(board, depth - 1);
         }
+
+        unmakeMove(moves[i], board);
     }
 
     return nodes;

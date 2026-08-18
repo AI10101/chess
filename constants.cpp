@@ -103,3 +103,29 @@ void getBishopMagic() {
         }
     }
 }
+
+
+std::mt19937_64 rng(2007);
+
+uint64_t pieceSqKey[12][64];
+uint64_t sideToMoveKey;
+uint64_t castlingKey[16];
+uint64_t epKey[8]; // file of ep square
+
+void getKeys() {
+    for (int piece=0; piece < 12; piece++) {
+        for (int sq=0; sq < 64; sq++) {
+            pieceSqKey[piece][sq] = rng();
+        }
+    }
+
+    sideToMoveKey = rng();
+
+    for (int castling=0; castling < 16; castling++) {
+        castlingKey[castling] = rng();
+    }
+
+    for (int file=0; file < 8; file++) {
+        epKey[file] = rng();
+    }
+}

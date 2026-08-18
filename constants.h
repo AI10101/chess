@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <iterator>
+#include <random>
 
 
 using bitboard = uint64_t;
@@ -180,3 +181,13 @@ extern bitboard bishopMagic[64][512];
 
 void getRookMagic();
 void getBishopMagic();
+
+
+extern std::mt19937_64 rng;
+
+extern uint64_t pieceSqKey[12][64];
+extern uint64_t sideToMoveKey;
+extern uint64_t castlingKey[16];
+extern uint64_t epKey[8]; // file of ep square
+
+void getKeys();
