@@ -18,7 +18,7 @@ inline uint64_t perft(Board& board, int depth) {
     uint64_t nodes = 0;
 
     for (int i=0; i<cnt; i++) {
-        makeMove(moves[i], board);
+        makeMove<SideToMove>(moves[i], board);
 
         int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
 
@@ -26,7 +26,7 @@ inline uint64_t perft(Board& board, int depth) {
             nodes += perft<SideToMove^1>(board, depth - 1);
         }
 
-        unmakeMove(moves[i], board);
+        unmakeMove<SideToMove>(moves[i], board);
     }
 
     return nodes;
@@ -54,7 +54,7 @@ uint64_t perftDivide(Board& board, int depth) {
     int cnt = moveGen<SideToMove>(board, moves);
 
     for (int i=0; i<cnt; i++) {
-        makeMove(moves[i], board);
+        makeMove<SideToMove>(moves[i], board);
 
         int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
 
@@ -65,7 +65,7 @@ uint64_t perftDivide(Board& board, int depth) {
             nodes += current_nodes;
         }
 
-        unmakeMove(moves[i], board);
+        unmakeMove<SideToMove>(moves[i], board);
 
         std::cout << moveToString(moves[i]) << ": " << current_nodes << "\n";
     }

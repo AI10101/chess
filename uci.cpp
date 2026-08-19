@@ -60,7 +60,8 @@ void makeUCImove(const std::string& str, Board& board) {
 
     for (int i=0; i<cnt; i++) {
         if ((moves[i] & moveMask) == movePart) {
-            makeMove(moves[i], board);
+            if (board.sideToMove) makeMove<true>(moves[i], board);
+            else makeMove<false>(moves[i], board);
             return;
         }
     }

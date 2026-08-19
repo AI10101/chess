@@ -29,7 +29,7 @@ int search(Board& board, int depth) {
     bool legalMoves = false;
 
     for (int i=0; i<cnt; i++) {
-        makeMove(moves[i], board);
+        makeMove<SideToMove>(moves[i], board);
 
         int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
 
@@ -39,7 +39,7 @@ int search(Board& board, int depth) {
             legalMoves = true;
         }
 
-        unmakeMove(moves[i], board);
+        unmakeMove<SideToMove>(moves[i], board);
     }
 
     if (!legalMoves) {
@@ -64,7 +64,7 @@ move findBestMove(Board& board, int depth) {
     move bestMove = moves[0];
 
     for (int i=0; i<cnt; i++) {
-        makeMove(moves[i], board);
+        makeMove<SideToMove>(moves[i], board);
 
         int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
 
@@ -76,7 +76,7 @@ move findBestMove(Board& board, int depth) {
             }
         }
 
-        unmakeMove(moves[i], board);
+        unmakeMove<SideToMove>(moves[i], board);
     }
 
     return bestMove;
