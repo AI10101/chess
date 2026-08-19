@@ -14,11 +14,11 @@ void perftTestPosition(std::string name, std::string fen, uint64_t goal, int dep
     if (board.sideToMove) nodes = perft<true>(board, depth);
     else nodes = perft<false>(board, depth);
 
-    if (nodes == goal) {
-        std::cout << "Position " << name << ": passed\n"; 
-    }
+    if (nodes == goal) std::cout << "Position " << name << ": passed\n";
     else {
-        std::cout << "Position " << name << ": failed!!!\nExpected: " << goal << "\nGot: " << nodes << "\n";
+        std::cout << "Position " << name << ": failed!!!\n";
+        std::cout << "Expected: " << goal << "\n";
+        std::cout << "Got: " << nodes << "\n";
     }
 }
 

@@ -39,18 +39,10 @@ void makeUCImove(const std::string& str, Board& board) {
 
     if (str.length() == 5) {
         moveMask |= 0b1011 << 12;
-        if (str[4] == 'n') {
-            movePart |= 0b1000 << 12;
-        }
-        else if (str[4] == 'b') {
-            movePart |= 0b1001 << 12;
-        }
-        else if (str[4] == 'r') {
-            movePart |= 0b1010 << 12;
-        }
-        else if (str[4] == 'q') {
-            movePart |= 0b1011 << 12;
-        }
+        if (str[4] == 'n')      movePart |= 0b1000 << 12;
+        else if (str[4] == 'b') movePart |= 0b1001 << 12;
+        else if (str[4] == 'r') movePart |= 0b1010 << 12;
+        else if (str[4] == 'q') movePart |= 0b1011 << 12;
     }
 
     move moves[256];

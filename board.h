@@ -22,6 +22,7 @@ enum Occupancy {
 struct Undo {
     uint64_t enPassant;
     uint16_t halfmoves;
+    uint16_t lastIrreversibleMovePly;
     uint8_t castling;
     uint8_t capturedPiece;
 };
@@ -41,6 +42,7 @@ class Board {
     uint64_t hashStack[17697];
     Undo undoStack[17697];
     uint16_t ply = 0;
+    uint16_t lastIrreversibleMovePly = 0;
 };
 
 
@@ -50,6 +52,7 @@ void loadFEN(const std::string& s, Board& board);
 template<bool SideToMove, bool kingCastle>
 inline void makeCastlingMove(Board& board, uint64_t& hash) {
     board.halfmoves++;
+    board.lastIrreversibleMovePly = board.ply;
 
     constexpr uint8_t king = (SideToMove) ? k : K;
     constexpr uint8_t rook = (SideToMove) ? r : R;
@@ -89,7 +92,8 @@ void makeMove(const uint16_t move, Board& board) {
     uint8_t movingPiece = board.board[from];
 
     board.undoStack[board.ply].enPassant = board.enPassant;
-    board.undoStack[board.ply].halfmoves = board.halfmoves; 
+    board.undoStack[board.ply].halfmoves = board.halfmoves;
+    board.undoStack[board.ply].lastIrreversibleMovePly = board.lastIrreversibleMovePly; 
     board.undoStack[board.ply].castling = board.castling;
 
     uint64_t hash = board.hashStack[board.ply];
@@ -108,8 +112,18 @@ void makeMove(const uint16_t move, Board& board) {
             board.occupancies[both] ^= fromToMask;
             // update halfmove clock
             board.halfmoves++;
-            if constexpr (SideToMove) {if (movingPiece == p) board.halfmoves = 0;}
-            else {if (movingPiece == P) board.halfmoves = 0;}
+            if constexpr (SideToMove) {
+                if (movingPiece == p) {
+                    board.halfmoves = 0;
+                    board.lastIrreversibleMovePly = board.ply;
+                }
+            }
+            else {
+                if (movingPiece == P) {
+                    board.halfmoves = 0;
+                    board.lastIrreversibleMovePly = board.ply;
+                }
+            }
             // update castling rights
             hash ^= castlingKey[board.castling];
             board.castling &= castlingUpdate[from];
@@ -117,6 +131,7 @@ void makeMove(const uint16_t move, Board& board) {
             break;
         case 1: // double pawn push
             board.halfmoves = 0;
+            board.lastIrreversibleMovePly = board.ply;
             // move piece
             board.pieces[movingPiece] ^= fromToMask;
             board.board[to] = movingPiece;
@@ -136,6 +151,7 @@ void makeMove(const uint16_t move, Board& board) {
             break;
         case 4: // captures
             board.halfmoves = 0;
+            board.lastIrreversibleMovePly = board.ply;
             // remove piece
             board.pieces[board.board[to]] ^= toMask;
             hash ^= pieceSqKey[board.board[to]][to];
@@ -156,6 +172,7 @@ void makeMove(const uint16_t move, Board& board) {
             break;
         case 5: // ep-capture
             board.halfmoves = 0;
+            board.lastIrreversibleMovePly = board.ply;
             // move pawn
             board.pieces[movingPiece] ^= fromToMask;
             board.board[to] = movingPiece;
@@ -183,6 +200,7 @@ void makeMove(const uint16_t move, Board& board) {
             break;
         default: // promotions
             board.halfmoves = 0;
+            board.lastIrreversibleMovePly = board.ply;
             if (flags & 0b100) { // capture
                 // remove captured piece
                 board.pieces[board.board[to]] ^= toMask;
@@ -261,6 +279,7 @@ void unmakeMove(const uint16_t move, Board& board) {
 
     board.enPassant = undo.enPassant;
     board.halfmoves = undo.halfmoves;
+    board.lastIrreversibleMovePly = undo.lastIrreversibleMovePly;
     board.castling = undo.castling;
 
     switch (flags) {

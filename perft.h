@@ -20,8 +20,7 @@ inline uint64_t perft(Board& board, int depth) {
     for (int i=0; i<cnt; i++) {
         makeMove<SideToMove>(moves[i], board);
 
-        int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
-
+        int KingSq = __builtin_ctzll(board.pieces[SideToMove ? k : K]);
         if (isSqSafe<SideToMove^1>(board, KingSq)) { // checks if move is legal (king can not be captured in the next move)
             nodes += perft<SideToMove^1>(board, depth - 1);
         }
@@ -56,18 +55,15 @@ uint64_t perftDivide(Board& board, int depth) {
     for (int i=0; i<cnt; i++) {
         makeMove<SideToMove>(moves[i], board);
 
-        int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
-
-        uint64_t current_nodes = 0;
-
+        int KingSq = __builtin_ctzll(board.pieces[SideToMove ? k : K]);
         if (isSqSafe<SideToMove^1>(board, KingSq)) { // checks if move is legal (king can not be captured in the next move)
-            current_nodes += perft<SideToMove^1>(board, depth - 1);
+            uint64_t current_nodes = perft<SideToMove^1>(board, depth - 1);
             nodes += current_nodes;
+
+            std::cout << moveToString(moves[i]) << ": " << current_nodes << "\n";
         }
 
         unmakeMove<SideToMove>(moves[i], board);
-
-        std::cout << moveToString(moves[i]) << ": " << current_nodes << "\n";
     }
 
     return nodes;

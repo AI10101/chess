@@ -11,6 +11,9 @@ using bitboard = uint64_t;
 using move = uint16_t;
 
 
+const int INF = 1e9;
+
+
 const bitboard Rank1 = 0xff;
 const bitboard Rank2 = 0xff00;
 const bitboard Rank7 = 0xff000000000000;
