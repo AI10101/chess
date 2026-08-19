@@ -1,7 +1,10 @@
 #include "board.h"
 #include "constants.h"
+#include "movegen.h"
 
 #include <algorithm>
+#include <cassert>
+#include <cstdint>
 #include <iterator>
 #include <sstream>
 #include <immintrin.h>
@@ -11,6 +14,8 @@ void loadFEN(const std::string& s, Board& board) {
     std::stringstream fen(s);
 
     std::fill(std::begin(board.pieces), std::end(board.pieces), 0ULL);
+    uint64_t hash = 0ULL;
+    board.ply = 0;
 
     std::string placement; fen >> placement;
     int rank = 7, file = 0;
@@ -25,19 +30,19 @@ void loadFEN(const std::string& s, Board& board) {
             int sq = rank * 8 + file;
             file++;
             switch(c) {
-                case 'K': board.pieces[K] |= 1ULL << sq; board.board[sq] = K; break;
-                case 'Q': board.pieces[Q] |= 1ULL << sq; board.board[sq] = Q; break;
-                case 'B': board.pieces[B] |= 1ULL << sq; board.board[sq] = B; break;
-                case 'N': board.pieces[N] |= 1ULL << sq; board.board[sq] = N; break;
-                case 'R': board.pieces[R] |= 1ULL << sq; board.board[sq] = R; break;
-                case 'P': board.pieces[P] |= 1ULL << sq; board.board[sq] = P; break;
+                case 'K': board.pieces[K] |= 1ULL << sq; board.board[sq] = K; hash ^= pieceSqKey[K][sq]; break;
+                case 'Q': board.pieces[Q] |= 1ULL << sq; board.board[sq] = Q; hash ^= pieceSqKey[Q][sq]; break;
+                case 'B': board.pieces[B] |= 1ULL << sq; board.board[sq] = B; hash ^= pieceSqKey[B][sq]; break;
+                case 'N': board.pieces[N] |= 1ULL << sq; board.board[sq] = N; hash ^= pieceSqKey[N][sq]; break;
+                case 'R': board.pieces[R] |= 1ULL << sq; board.board[sq] = R; hash ^= pieceSqKey[R][sq]; break;
+                case 'P': board.pieces[P] |= 1ULL << sq; board.board[sq] = P; hash ^= pieceSqKey[P][sq]; break;
 
-                case 'k': board.pieces[k] |= 1ULL << sq; board.board[sq] = k; break;
-                case 'q': board.pieces[q] |= 1ULL << sq; board.board[sq] = q; break;
-                case 'b': board.pieces[b] |= 1ULL << sq; board.board[sq] = b; break;
-                case 'n': board.pieces[n] |= 1ULL << sq; board.board[sq] = n; break;
-                case 'r': board.pieces[r] |= 1ULL << sq; board.board[sq] = r; break;
-                case 'p': board.pieces[p] |= 1ULL << sq; board.board[sq] = p; break;
+                case 'k': board.pieces[k] |= 1ULL << sq; board.board[sq] = k; hash ^= pieceSqKey[k][sq]; break;
+                case 'q': board.pieces[q] |= 1ULL << sq; board.board[sq] = q; hash ^= pieceSqKey[q][sq]; break;
+                case 'b': board.pieces[b] |= 1ULL << sq; board.board[sq] = b; hash ^= pieceSqKey[b][sq]; break;
+                case 'n': board.pieces[n] |= 1ULL << sq; board.board[sq] = n; hash ^= pieceSqKey[n][sq]; break;
+                case 'r': board.pieces[r] |= 1ULL << sq; board.board[sq] = r; hash ^= pieceSqKey[r][sq]; break;
+                case 'p': board.pieces[p] |= 1ULL << sq; board.board[sq] = p; hash ^= pieceSqKey[p][sq]; break;
             }
         }
     }
@@ -49,6 +54,7 @@ void loadFEN(const std::string& s, Board& board) {
 
     std::string movingSide; fen >> movingSide;
     board.sideToMove = (movingSide == "b"); // "b" = 1; "w" = 0
+    if (board.sideToMove) hash ^= sideToMoveKey;
 
     std::string castling; fen >> castling;
     board.castling = 0;
@@ -60,13 +66,46 @@ void loadFEN(const std::string& s, Board& board) {
             case 'q': board.castling ^= 0b1; break;
         }
     }
+    hash ^= castlingKey[board.castling];
 
     std::string enPassant; fen >> enPassant;
-    board.enPassant = (enPassant == "-") ? 0ULL : 1ULL << ((enPassant[1] -'1') * 8 + (enPassant[0] - 'a'));
+    if (enPassant == "-") {
+        board.enPassant = 0ULL;
+    }
+    else {
+        board.enPassant = 1ULL << ((enPassant[1] -'1') * 8 + (enPassant[0] - 'a'));
+        hash ^= epKey[enPassant[0] - 'a'];
+    }
+
+    board.hashStack[0] = hash;
 
     std::string movesCnt;
     fen >> movesCnt; board.halfmoves = stoi(movesCnt);
     fen >> movesCnt; board.fullmoves = stoi(movesCnt);
+}
+
+
+uint64_t getHash(Board &board) {
+    uint64_t hash = 0ULL;
+
+    for (int piece=0; piece < 12; piece++) {
+        bitboard bb = board.pieces[piece];
+
+        while (bb) {
+            int sq = popLSB(bb);
+            hash ^= pieceSqKey[piece][sq];
+        }
+    }
+
+    if (board.sideToMove) hash ^= sideToMoveKey;
+
+    hash ^= castlingKey[board.castling];
+
+    if (board.enPassant != 0) {
+        hash ^= epKey[__builtin_ctzll(board.enPassant) % 8];
+    }
+
+    return hash;
 }
 
 
@@ -80,13 +119,20 @@ void makeMove(const uint16_t move, Board& board) {
 
     board.undoStack[board.ply].enPassant = board.enPassant;
     board.undoStack[board.ply].halfmoves = board.halfmoves; 
-    board.undoStack[board.ply].castling = board.castling; 
+    board.undoStack[board.ply].castling = board.castling;
 
+    uint64_t hash = board.hashStack[board.ply];
+
+    if (board.enPassant != 0) hash ^= epKey[__builtin_ctzll(board.enPassant) % 8];
     board.enPassant = 0ULL;
+
+    hash ^= castlingKey[board.castling];
 
     switch (flags) {
         case 0: // quiet
             board.pieces[board.board[from]] ^= fromMask | toMask; // update bitboard
+            hash ^= pieceSqKey[board.board[from]][from];
+            hash ^= pieceSqKey[board.board[from]][to];
             // update occupancy bitboards
             board.occupancies[board.sideToMove] ^= fromMask | toMask;
             board.occupancies[both] ^= fromMask | toMask;
@@ -101,18 +147,25 @@ void makeMove(const uint16_t move, Board& board) {
         case 1: // double pawn push
             board.halfmoves = 0;
             board.pieces[board.board[from]] ^= fromMask | toMask; // update bitboard
+            hash ^= pieceSqKey[board.board[from]][from];
+            hash ^= pieceSqKey[board.board[from]][to];
             // update occupancy bitboards
             board.occupancies[board.sideToMove] ^= fromMask | toMask;
             board.occupancies[both] ^= fromMask | toMask;
             // update board
             board.board[to] = board.board[from];
             board.enPassant = 1ULL << ((from + to) / 2); // store ep square
+            hash ^= epKey[__builtin_ctzll(board.enPassant) % 8];
             break;
         case 2: // king castle
             board.halfmoves++;
             // update bitboards
             board.pieces[board.board[from]] ^= fromMask | toMask; // king
+            hash ^= pieceSqKey[board.board[from]][from];
+            hash ^= pieceSqKey[board.board[from]][to];
             board.pieces[board.board[from+3]] ^= (toMask >> 1) | (toMask << 1); // rook
+            hash ^= pieceSqKey[board.board[from+3]][from+3];
+            hash ^= pieceSqKey[board.board[from+3]][from+1];
             // update occupancy bitboards (king + rook)
             board.occupancies[board.sideToMove] ^= fromMask | toMask | (toMask >> 1) | (toMask << 1);
             board.occupancies[both] ^= fromMask | toMask | (toMask >> 1) | (toMask << 1);
@@ -126,7 +179,11 @@ void makeMove(const uint16_t move, Board& board) {
             board.halfmoves++;
             // update bitboards
             board.pieces[board.board[from]] ^= fromMask | toMask; // king
+            hash ^= pieceSqKey[board.board[from]][from];
+            hash ^= pieceSqKey[board.board[from]][to];
             board.pieces[board.board[from-4]] ^= (toMask >> 2) | (toMask << 1); // rook
+            hash ^= pieceSqKey[board.board[from-4]][from-4];
+            hash ^= pieceSqKey[board.board[from-4]][from-1];
             // update occupancy bitboards (king + rook)
             board.occupancies[board.sideToMove] ^= fromMask | toMask | (toMask >> 2) | (toMask << 1);
             board.occupancies[both] ^= fromMask | toMask | (toMask >> 2) | (toMask << 1);
@@ -139,7 +196,10 @@ void makeMove(const uint16_t move, Board& board) {
         case 4: // captures
             board.halfmoves = 0;
             board.pieces[board.board[from]] ^= fromMask | toMask; // update attacker bitboard
+            hash ^= pieceSqKey[board.board[from]][from];
+            hash ^= pieceSqKey[board.board[from]][to];
             board.pieces[board.board[to]] ^= toMask; // update captured bitboard
+            hash ^= pieceSqKey[board.board[to]][to];
             board.undoStack[board.ply].capturedPiece = board.board[to]; 
             // update occupancy bitboards
             board.occupancies[board.sideToMove] ^= fromMask | toMask; // us
@@ -154,11 +214,19 @@ void makeMove(const uint16_t move, Board& board) {
         case 5: // ep-capture
             board.halfmoves = 0;
             board.pieces[board.board[from]] ^= fromMask | toMask; // update pawn bitboard
+            hash ^= pieceSqKey[board.board[from]][from];
+            hash ^= pieceSqKey[board.board[from]][to];
             board.undoStack[board.ply].capturedPiece = board.sideToMove == white ? p : P;; 
             board.board[to] = board.board[from]; // update board
             // the if statement is unnecessary as to+8 and to-8 squares contain precisely one pawn - the captured one
             board.pieces[p] &= ~((toMask << 8) | (toMask >> 8));
             board.pieces[P] &= ~((toMask << 8) | (toMask >> 8));
+            if (board.sideToMove == white) {
+                hash ^= pieceSqKey[board.board[to-8]][to-8];
+            }
+            else {
+                hash ^= pieceSqKey[board.board[to+8]][to+8];
+            }
             // update occupancy bitboards
             board.occupancies[board.sideToMove] ^= fromMask | toMask; // us
             board.occupancies[board.sideToMove^1] &= ~((toMask << 8) | (toMask >> 8)); // enemy
@@ -169,11 +237,13 @@ void makeMove(const uint16_t move, Board& board) {
             board.halfmoves = 0;
             if (flags & 0b100) { // capture
                 board.pieces[board.board[to]] &= ~toMask; // update captured bitboard
+                hash ^= pieceSqKey[board.board[to]][to];
                 board.undoStack[board.ply].capturedPiece = board.board[to]; 
                 board.occupancies[board.sideToMove^1] ^= toMask; // update enemy occupancy bitboard
                 board.castling &= castlingUpdate[to]; // update castling rights (rook can be captured)
             }
             board.pieces[board.board[from]] ^= fromMask; // update pawn bitboard
+            hash ^= pieceSqKey[board.board[from]][from];
             // update occupancy bitboards
             board.occupancies[board.sideToMove] ^= fromMask | toMask;
             board.occupancies[both] ^= fromMask;
@@ -181,13 +251,18 @@ void makeMove(const uint16_t move, Board& board) {
             // place new piece
             board.board[to] = board.sideToMove *6 + (flags & 0b11); // flags contain info about promotion piece
             board.pieces[board.sideToMove *6 + (flags & 0b11)] ^= toMask;
+            hash ^= pieceSqKey[board.board[to]][to];
             break;
     }
+
+    hash ^= castlingKey[board.castling];
 
     if (board.sideToMove == black) board.fullmoves++;
     board.ply++;
 
     board.sideToMove ^= 1; // flip side to move
+    hash ^= sideToMoveKey;
+    board.hashStack[board.ply] = hash;
 }
 
 

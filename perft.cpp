@@ -1,4 +1,5 @@
 #include "perft.h"
+#include "search.h"
 
 #include <cstdint>
 #include <iostream>
@@ -48,6 +49,35 @@ void perftTimePosition(std::string name, std::string fen, int depth) {
 }
 
 
+void searchTimePosition(std::string name, std::string fen, int depth) {
+    int runs = 5;
+
+    double totalTime = 0.0;
+    uint64_t nodes;
+    Board board;
+
+    loadFEN(fen, board);
+    if (board.sideToMove) nodes = perft<true>(board, depth);
+    else nodes = perft<false>(board, depth);
+
+    for (int i=0; i<runs; i++) {
+        loadFEN(fen, board);
+
+        auto start = std::chrono::high_resolution_clock::now();
+        if (board.sideToMove) findBestMove<true>(board, depth);
+        else findBestMove<false>(board, depth);
+        auto stop = std::chrono::high_resolution_clock::now();
+
+        std::chrono::duration<double> elapsed = stop - start;
+        totalTime += elapsed.count();
+    }
+
+    std::cout << name << " perft " << depth << "\n";
+    std::cout << "Time: " << totalTime / runs << " s\n";
+    std::cout << "MNPS: " << nodes / (totalTime / runs) / 1e6 << "\n";
+}
+
+
 void perftTest() {
     perftTestPosition("1 (StartPos)", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 119060324, 6);
     perftTestPosition("2 (Kiwipete)", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 193690690, 5);
@@ -61,5 +91,11 @@ void perftTest() {
     perftTimePosition("StartPos", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6);
     std::cout << "\n";
     perftTimePosition("Kiwipete", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 5);
+    std::cout << "\n";
+
+    std::cout << "\n";
+    searchTimePosition("StartPos", "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6);
+    std::cout << "\n";
+    searchTimePosition("Kiwipete", "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", 5);
     std::cout << "\n";
 }

@@ -4,6 +4,7 @@
 #include "constants.h"
 #include "movegen.h"
 
+#include <cassert>
 #include <iostream>
 
 
@@ -53,17 +54,18 @@ uint64_t perftDivide(Board& board, int depth) {
     int cnt = moveGen<SideToMove>(board, moves);
 
     for (int i=0; i<cnt; i++) {
-        Board next = board;
-        makeMove(moves[i], next);
+        makeMove(moves[i], board);
 
-        int KingSq = __builtin_ctzll(next.pieces[SideToMove*6 + K]);
+        int KingSq = __builtin_ctzll(board.pieces[SideToMove*6 + K]);
 
         uint64_t current_nodes = 0;
 
-        if (isSqSafe<SideToMove^1>(next, KingSq)) { // checks if move is legal (king can not be captured in the next move)
-            current_nodes += perft<SideToMove^1>(next, depth - 1);
+        if (isSqSafe<SideToMove^1>(board, KingSq)) { // checks if move is legal (king can not be captured in the next move)
+            current_nodes += perft<SideToMove^1>(board, depth - 1);
             nodes += current_nodes;
         }
+
+        unmakeMove(moves[i], board);
 
         std::cout << moveToString(moves[i]) << ": " << current_nodes << "\n";
     }

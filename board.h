@@ -37,13 +37,16 @@ class Board {
     bitboard pieces[12]; // N, B, R, Q, K, P, n, b, r, q, k, p
     bitboard occupancies[3]; // white, black, both
 
-    uint64_t hashStack[128];
-    Undo undoStack[128];
+    uint64_t hashStack[17697];
+    Undo undoStack[17697];
     uint16_t ply = 0;
 };
 
 
 void loadFEN(const std::string& s, Board& board);
+
+
+uint64_t getHash(Board& board);
 
 
 void makeMove(const uint16_t move, Board& board);
